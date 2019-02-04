@@ -18,7 +18,7 @@ type Builder interface {
 
 // Sync up all resources
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
-	g := BuildGraph(resources)
+	g := buildGraph(resources)
 	ordered := Sort(g)
 
 	buildCache := map[string]interface{}{}

@@ -14,8 +14,7 @@ type Resource struct {
 	DependsOn  []string
 }
 
-// BuildGraph converts resource table to Graph
-func BuildGraph(resources []*Resource) *Graph {
+func buildGraph(resources []*Resource) *Graph {
 	parents := map[int][]int{}
 	indexes := map[string]int{}
 

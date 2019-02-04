@@ -16,7 +16,7 @@ func TestBuildGraph(t *testing.T) {
 		DependsOn: []string{"mykin"},
 	}}
 
-	g := BuildGraph(resources)
+	g := buildGraph(resources)
 
 	t.Logf("graph = %v\n", g)
 
