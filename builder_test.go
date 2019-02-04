@@ -4,38 +4,35 @@ import "testing"
 
 type factory struct{}
 
-// Kinesis is aws data stream
-type Kinesis struct {
+type kinesis struct {
 	*Resource
 }
 
-func (k *Kinesis) Update(cache BuildCache) error { return nil }
-func (k *Kinesis) Delete(cache BuildCache) error { return nil }
+func (k *kinesis) Update(cache BuildCache) error { return nil }
+func (k *kinesis) Delete(cache BuildCache) error { return nil }
 
-// Dynamo is aws data table
-type Dynamo struct {
+type dynamo struct {
 	*Resource
 }
 
-func (k *Dynamo) Update(cache BuildCache) error { return nil }
-func (k *Dynamo) Delete(cache BuildCache) error { return nil }
+func (k *dynamo) Update(cache BuildCache) error { return nil }
+func (k *dynamo) Delete(cache BuildCache) error { return nil }
 
-// Deployment is kubernetes deployment
-type Deployment struct {
+type deployment struct {
 	*Resource
 }
 
-func (k *Deployment) Update(cache BuildCache) error { return nil }
-func (k *Deployment) Delete(cache BuildCache) error { return nil }
+func (k *deployment) Update(cache BuildCache) error { return nil }
+func (k *deployment) Delete(cache BuildCache) error { return nil }
 
 func (f *factory) Create(r *Resource) Builder {
 	switch r.Type {
 	case "kinesis":
-		return &Kinesis{r}
+		return &kinesis{r}
 	case "dynamo":
-		return &Dynamo{r}
+		return &dynamo{r}
 	case "deployment":
-		return &Deployment{r}
+		return &deployment{r}
 	}
 	return nil
 }
