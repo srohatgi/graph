@@ -50,9 +50,9 @@ func TestSync(t *testing.T) {
 		Name: "mydyn",
 		Type: "dynamo",
 	}, {
-		Name:       "mydep1",
-		Type:       "deployment",
-		Properties: []Property{{&mykin, "ARN", ""}},
+		Name:      "mydep1",
+		Type:      "deployment",
+		DependsOn: []Dependency{{mykin, []Property{{"ARN", ""}}}},
 	}}
 
 	f := &factory{}

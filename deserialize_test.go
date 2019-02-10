@@ -13,9 +13,9 @@ func TestBuildGraph(t *testing.T) {
 		Name: "mydyn",
 		Type: "dynamo",
 	}, {
-		Name:       "mydep1",
-		Type:       "deployment",
-		Properties: []Property{{&kinName, "ARN", ""}},
+		Name:      "mydep1",
+		Type:      "deployment",
+		DependsOn: []Dependency{{kinName, []Property{{"ARN", ""}}}},
 	}}
 
 	g := buildGraph(resources)
