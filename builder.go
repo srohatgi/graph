@@ -37,24 +37,30 @@ func createSync(builders []Builder, g *Graph) error {
 
 	buildCache := map[string][]Property{}
 	var err error
-	for _, i := range ordered {
-		var in, out []Property
-		res := builders[i].Get()
-		for _, prop := range res.Properties {
-			if prop.ResourceName != nil && *prop.ResourceName != res.Name {
-				for _, nprop := range buildCache[*prop.ResourceName] {
-					if prop.Name == nprop.Name {
-						in = append(in, Property{prop.ResourceName, nprop.Name, nprop.Value})
+
+	resourcesLeft := len(ordered)
+
+	for resourcesLeft != 0 && err != nil {
+		for _, i := range ordered {
+			var in, out []Property
+			res := builders[i].Get()
+			for _, prop := range res.Properties {
+				if prop.ResourceName != nil && *prop.ResourceName != res.Name {
+					for _, nprop := range buildCache[*prop.ResourceName] {
+						if prop.Name == nprop.Name {
+							in = append(in, Property{prop.ResourceName, nprop.Name, nprop.Value})
+						}
 					}
 				}
+				out, err = builders[i].Update(in)
+				if err == nil {
+					buildCache[res.Name] = append(buildCache[res.Name], out...)
+				}
 			}
-			out, err = builders[i].Update(in)
-			if err == nil {
-				buildCache[res.Name] = append(buildCache[res.Name], out...)
+			if err != nil {
+				break
 			}
-		}
-		if err != nil {
-			break
+			resourcesLeft--
 		}
 	}
 
