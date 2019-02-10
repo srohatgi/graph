@@ -1,5 +1,7 @@
 package graph
 
+import "errors"
+
 // BuildCache allows a loose form of communication
 type BuildCache map[string]interface{}
 
@@ -39,13 +41,24 @@ func createSync(builders []Builder, g *Graph) error {
 	var err error
 
 	resourcesLeft := len(ordered)
+	maxAttempts := len(ordered)
 
-	for resourcesLeft != 0 && err != nil {
+	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
+		maxAttempts--
 		for _, i := range ordered {
 			var in, out []Property
 			res := builders[i].Get()
+			skipUpdate := false
 			for _, dep := range res.DependsOn {
+				if _, found := buildCache[dep.ResourceName]; !found {
+					// cannot proceed as this resource cannot be processed
+					skipUpdate = true
+					break
+				}
 				in = append(in, buildCache[dep.ResourceName]...)
+			}
+			if skipUpdate {
+				break
 			}
 			out, err = builders[i].Update(in)
 			if err != nil {
@@ -54,6 +67,10 @@ func createSync(builders []Builder, g *Graph) error {
 			buildCache[res.Name] = append(buildCache[res.Name], out...)
 			resourcesLeft--
 		}
+	}
+
+	if resourcesLeft > 0 && err == nil {
+		err = errors.New("max attempts at computing resources exhausted, giving up")
 	}
 
 	return err
