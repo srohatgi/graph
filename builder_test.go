@@ -8,6 +8,7 @@ type kinesis struct {
 	*Resource
 }
 
+func (k *kinesis) Get() *Resource                           { return k.Resource }
 func (k *kinesis) Update(in []Property) ([]Property, error) { return nil, nil }
 func (k *kinesis) Delete() error                            { return nil }
 
@@ -15,6 +16,7 @@ type dynamo struct {
 	*Resource
 }
 
+func (k *dynamo) Get() *Resource                           { return k.Resource }
 func (k *dynamo) Update(in []Property) ([]Property, error) { return nil, nil }
 func (k *dynamo) Delete() error                            { return nil }
 
@@ -22,6 +24,7 @@ type deployment struct {
 	*Resource
 }
 
+func (k *deployment) Get() *Resource                           { return k.Resource }
 func (k *deployment) Update(in []Property) ([]Property, error) { return nil, nil }
 func (k *deployment) Delete() error                            { return nil }
 
