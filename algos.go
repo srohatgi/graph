@@ -42,6 +42,7 @@ func Sort(g *Graph) []int {
 		sorted = append(sorted, toRemove)
 	}
 
+	logger("sorted", sorted)
 	return sorted
 }
 

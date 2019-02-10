@@ -5,6 +5,7 @@ import (
 )
 
 func TestSort(t *testing.T) {
+	WithLogger(t.Log)
 	g := New(5)
 	g.AddEdge(0, 1)
 	g.AddEdge(0, 2)
