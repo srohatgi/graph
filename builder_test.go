@@ -8,22 +8,22 @@ type kinesis struct {
 	*Resource
 }
 
-func (k *kinesis) Update(cache BuildCache) error { return nil }
-func (k *kinesis) Delete(cache BuildCache) error { return nil }
+func (k *kinesis) Update(in []Property) ([]Property, error) { return nil, nil }
+func (k *kinesis) Delete() error                            { return nil }
 
 type dynamo struct {
 	*Resource
 }
 
-func (k *dynamo) Update(cache BuildCache) error { return nil }
-func (k *dynamo) Delete(cache BuildCache) error { return nil }
+func (k *dynamo) Update(in []Property) ([]Property, error) { return nil, nil }
+func (k *dynamo) Delete() error                            { return nil }
 
 type deployment struct {
 	*Resource
 }
 
-func (k *deployment) Update(cache BuildCache) error { return nil }
-func (k *deployment) Delete(cache BuildCache) error { return nil }
+func (k *deployment) Update(in []Property) ([]Property, error) { return nil, nil }
+func (k *deployment) Delete() error                            { return nil }
 
 func (f *factory) Create(r *Resource) Builder {
 	switch r.Type {
@@ -38,17 +38,18 @@ func (f *factory) Create(r *Resource) Builder {
 }
 
 func TestSync(t *testing.T) {
+	mykin := "mykin"
 
 	resources := []*Resource{{
-		Name: "mykin",
+		Name: mykin,
 		Type: "kinesis",
 	}, {
 		Name: "mydyn",
 		Type: "dynamo",
 	}, {
-		Name:      "mydep1",
-		Type:      "deployment",
-		DependsOn: []string{"mykin"},
+		Name:       "mydep1",
+		Type:       "deployment",
+		Properties: []Property{{&mykin, "ARN", ""}},
 	}}
 
 	f := &factory{}

@@ -4,16 +4,18 @@ import "testing"
 
 func TestBuildGraph(t *testing.T) {
 
+	kinName := "mykin"
+
 	resources := []*Resource{{
-		Name: "mykin",
+		Name: kinName,
 		Type: "kinesis",
 	}, {
 		Name: "mydyn",
 		Type: "dynamo",
 	}, {
-		Name:      "mydep1",
-		Type:      "deployment",
-		DependsOn: []string{"mykin"},
+		Name:       "mydep1",
+		Type:       "deployment",
+		Properties: []Property{{&kinName, "ARN", ""}},
 	}}
 
 	g := buildGraph(resources)

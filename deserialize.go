@@ -2,8 +2,9 @@ package graph
 
 // Property is an arbitrary name value pair
 type Property struct {
-	Name  string
-	Value string
+	ResourceName *string
+	Name         string
+	Value        string
 }
 
 // Resource models a virtual service
@@ -11,7 +12,6 @@ type Resource struct {
 	Name       string
 	Type       string
 	Properties []Property
-	DependsOn  []string
 }
 
 func buildGraph(resources []*Resource) *Graph {
@@ -23,8 +23,10 @@ func buildGraph(resources []*Resource) *Graph {
 	}
 
 	for i := range resources {
-		for _, dep := range resources[i].DependsOn {
-			parents[i] = append(parents[i], indexes[dep])
+		for _, prop := range resources[i].Properties {
+			if prop.ResourceName != nil && *prop.ResourceName != resources[i].Name {
+				parents[i] = append(parents[i], indexes[*prop.ResourceName])
+			}
 		}
 	}
 
