@@ -1,19 +1,24 @@
 package graph
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 )
 
 type sleeper struct {
+	t      *testing.T
 	id     int
 	tellme chan error
 }
 
 func (s *sleeper) run() {
+	if s.id == 3 {
+		s.t.Logf("Worker %d throwing error", s.id)
+		s.tellme <- errors.New("issue in " + string(s.id))
+	}
 	time.Sleep(1 * time.Second)
-	fmt.Printf("Done with id: %v\n", s.id)
+	s.t.Logf("Worker %v done successfully", s.id)
 }
 
 func TestWorker(t *testing.T) {
@@ -23,7 +28,8 @@ func TestWorker(t *testing.T) {
 	queue := make(chan error, tasks)
 
 	for i := 0; i < tasks; i++ {
-		s := &sleeper{i, queue}
+		s := &sleeper{t, i, queue}
+		place(s)
 	}
 
 	defer stop()

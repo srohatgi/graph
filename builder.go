@@ -48,16 +48,16 @@ func createSync(builders []Builder, g *Graph) error {
 		for _, i := range ordered {
 			var in, out []Property
 			res := builders[i].Get()
-			skipUpdate := false
+			notReady := false
 			for _, dep := range res.DependsOn {
 				if _, found := buildCache[dep.ResourceName]; !found {
 					// cannot proceed as this resource cannot be processed
-					skipUpdate = true
+					notReady = true
 					break
 				}
 				in = append(in, buildCache[dep.ResourceName]...)
 			}
-			if skipUpdate {
+			if notReady {
 				break
 			}
 			out, err = builders[i].Update(in)
