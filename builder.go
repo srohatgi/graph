@@ -25,6 +25,11 @@ type Builder interface {
 	Update(in []Property) ([]Property, error)
 }
 
+type builderOutput struct {
+	result error
+	out    []Property
+}
+
 // Sync resources
 // the Resource slice is first sorted and then executed in order
 // if Resource's may be created or updated in parallel if possible
@@ -82,13 +87,14 @@ func createSync(builders []Builder, g *graph) error {
 
 		// execute nodes that are ready
 		var wg sync.WaitGroup
-		errs := map[int]chan error{}
+		errs := map[int]chan builderOutput{}
 
 		logger("executing ", execList)
 		for _, i := range execList {
 			wg.Add(1)
-			errs[i] = make(chan error, 1)
-			go func(b Builder, c chan error) {
+			errs[i] = make(chan builderOutput, 1)
+
+			go func(b Builder, c chan builderOutput) {
 				defer wg.Done()
 				c <- execute(b, buildCache)
 			}(builders[i], errs[i])
@@ -100,11 +106,15 @@ func createSync(builders []Builder, g *graph) error {
 		errCnt := 0
 		for i, c := range errs {
 			e := <-c
-			if e != nil {
+			if e.result != nil {
 				logger("error executing builder", "builder", builders[i], "error", e)
-				err = e
+				err = e.result
 				errCnt++
+				continue
 			}
+
+			name := builders[i].Get().Name
+			buildCache[name] = append(buildCache[name], e.out...)
 		}
 
 		resourcesLeft -= len(execList) - errCnt
@@ -117,7 +127,7 @@ func createSync(builders []Builder, g *graph) error {
 	return err
 }
 
-func execute(b Builder, cache map[string][]Property) error {
+func execute(b Builder, cache map[string][]Property) builderOutput {
 	var in []Property
 	res := b.Get()
 	for _, dep := range res.DependsOn {
@@ -126,10 +136,9 @@ func execute(b Builder, cache map[string][]Property) error {
 
 	out, err := b.Update(in)
 	if err != nil {
-		return err
+		return builderOutput{err, nil}
 	}
-	cache[res.Name] = append(cache[res.Name], out...)
-	return nil
+	return builderOutput{nil, out}
 }
 
 func reverse(in []int) {

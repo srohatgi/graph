@@ -6,11 +6,11 @@ type Resource struct {
 	Name string
 	// Type is expected to be used for creating Builder's
 	Type string
-	// Bag is a convenient pointer, unused by the library
+	// Bag is a convenience for developers, it's unused by the library
 	Bag interface{}
 	// Properties are input to the Builder
 	Properties []Property
-	// DependsOn are dependencies used for sorting Resource slice
+	// DependsOn are names of Resource's this Resource requires to be built
 	DependsOn []string
 }
 
