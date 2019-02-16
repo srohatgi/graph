@@ -42,17 +42,23 @@ func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 func createSync(builders []Builder, g *Graph) error {
 	ordered := Sort(g)
 
-	buildCache := map[string][]Property{}
 	var err error
 
 	resourcesLeft := len(ordered)
 	maxAttempts := len(ordered)
 
+	buildCache := map[string][]Property{}
 	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
 		maxAttempts--
 		execList := []int{}
 		for _, i := range ordered {
+
 			res := builders[i].Get()
+			// check if we've already executed
+			if _, alreadyExecuted := buildCache[res.Name]; alreadyExecuted {
+				continue
+			}
+
 			ready := true
 			for _, dep := range res.DependsOn {
 				if _, found := buildCache[dep.ResourceName]; !found {
@@ -71,6 +77,7 @@ func createSync(builders []Builder, g *Graph) error {
 		var wg sync.WaitGroup
 		errs := map[int]chan error{}
 
+		logger("executing ", execList)
 		for _, i := range execList {
 			wg.Add(1)
 			errs[i] = make(chan error, 1)
@@ -110,11 +117,11 @@ func execute(b Builder, cache map[string][]Property) error {
 		in = append(in, cache[dep.ResourceName]...)
 	}
 
-	_, err := b.Update(in)
+	out, err := b.Update(in)
 	if err != nil {
 		return err
 	}
-	//cache[res.Name] = append(cache[res.Name], out...)
+	cache[res.Name] = append(cache[res.Name], out...)
 	return nil
 }
 
