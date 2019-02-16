@@ -57,6 +57,8 @@ func TestSync(t *testing.T) {
 
 	f := &factory{}
 
+	WithLogger(t.Log)
+
 	err := Sync(resources, false, f)
 
 	if err != nil {

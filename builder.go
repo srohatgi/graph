@@ -24,6 +24,8 @@ type Builder interface {
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 
+	logger("starting sync")
+
 	builders := []Builder{}
 
 	for _, r := range resources {
@@ -51,33 +53,47 @@ func createSync(builders []Builder, g *Graph) error {
 		execList := []int{}
 		for _, i := range ordered {
 			res := builders[i].Get()
-			notReady := false
+			ready := true
 			for _, dep := range res.DependsOn {
 				if _, found := buildCache[dep.ResourceName]; !found {
 					// cannot proceed as this resource cannot be processed
-					notReady = true
+					ready = false
 					break
 				}
 			}
-			if notReady {
+			if !ready {
 				break
 			}
 			execList = append(execList, i)
 		}
 
 		// execute nodes that are ready
-		wg := new(sync.WaitGroup)
+		var wg sync.WaitGroup
 		errs := map[int]chan error{}
 
 		for _, i := range execList {
 			wg.Add(1)
-			errs[i] = make(chan error)
+			errs[i] = make(chan error, 1)
 			go func(b Builder, c chan error) {
+				defer wg.Done()
 				c <- execute(b, buildCache)
 			}(builders[i], errs[i])
 		}
 
-		resourcesLeft--
+		wg.Wait()
+		logger("done waiting")
+
+		errCnt := 0
+		for i, c := range errs {
+			e := <-c
+			if e != nil {
+				logger("error executing builder", "builder", builders[i], "error", e)
+				err = e
+				errCnt++
+			}
+		}
+
+		resourcesLeft -= len(execList) - errCnt
 	}
 
 	if resourcesLeft > 0 && err == nil {
@@ -94,11 +110,11 @@ func execute(b Builder, cache map[string][]Property) error {
 		in = append(in, cache[dep.ResourceName]...)
 	}
 
-	out, err := b.Update(in)
+	_, err := b.Update(in)
 	if err != nil {
 		return err
 	}
-	cache[res.Name] = append(cache[res.Name], out...)
+	//cache[res.Name] = append(cache[res.Name], out...)
 	return nil
 }
 
