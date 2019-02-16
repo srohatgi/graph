@@ -11,7 +11,7 @@ type Resource struct {
 	// Properties are input to the Builder
 	Properties []Property
 	// DependsOn are dependencies used for sorting Resource slice
-	DependsOn []Dependency
+	DependsOn []string
 }
 
 // Property is an arbitrary name value pair
@@ -19,14 +19,6 @@ type Property struct {
 	// Name is unique per Resource
 	Name  string
 	Value string
-}
-
-// Dependency captures resource dependencies
-type Dependency struct {
-	// ResourceName refers to the unique Name in a slice of Resource's
-	ResourceName string
-	// Properties used by the Builder
-	Properties []Property
 }
 
 func buildGraph(resources []*Resource) *graph {
@@ -39,7 +31,7 @@ func buildGraph(resources []*Resource) *graph {
 
 	for i := range resources {
 		for _, dep := range resources[i].DependsOn {
-			parents[i] = append(parents[i], indexes[dep.ResourceName])
+			parents[i] = append(parents[i], indexes[dep])
 		}
 	}
 

@@ -15,7 +15,7 @@ func TestBuildGraph(t *testing.T) {
 	}, {
 		Name:      "mydep1",
 		Type:      "deployment",
-		DependsOn: []Dependency{{kinName, []Property{{"ARN", ""}}}},
+		DependsOn: []string{kinName},
 	}}
 
 	g := buildGraph(resources)

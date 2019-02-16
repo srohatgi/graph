@@ -52,7 +52,7 @@ func TestSync(t *testing.T) {
 	}, {
 		Name:      "mydep1",
 		Type:      "deployment",
-		DependsOn: []Dependency{{mykin, []Property{{"ARN", ""}}}},
+		DependsOn: []string{mykin},
 	}}
 
 	f := &factory{}

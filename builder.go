@@ -68,7 +68,7 @@ func createSync(builders []Builder, g *graph) error {
 
 			ready := true
 			for _, dep := range res.DependsOn {
-				if _, found := buildCache[dep.ResourceName]; !found {
+				if _, found := buildCache[dep]; !found {
 					// cannot proceed as this resource cannot be processed
 					ready = false
 					break
@@ -121,7 +121,7 @@ func execute(b Builder, cache map[string][]Property) error {
 	var in []Property
 	res := b.Get()
 	for _, dep := range res.DependsOn {
-		in = append(in, cache[dep.ResourceName]...)
+		in = append(in, cache[dep]...)
 	}
 
 	out, err := b.Update(in)
