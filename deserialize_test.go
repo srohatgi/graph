@@ -22,11 +22,11 @@ func TestBuildGraph(t *testing.T) {
 
 	t.Logf("graph = %v\n", g)
 
-	if g.Vertices() != 3 {
+	if g.vertices() != 3 {
 		t.Fatal("vertices incorrect")
 	}
 
-	if len(g.Adjascent(0)) != 1 || g.Adjascent(0)[0] != 2 {
+	if len(g.adjascent(0)) != 1 || g.adjascent(0)[0] != 2 {
 		t.Fatal("incorrect edges")
 	}
 }

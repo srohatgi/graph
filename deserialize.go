@@ -21,7 +21,7 @@ type Resource struct {
 	DependsOn  []Dependency
 }
 
-func buildGraph(resources []*Resource) *Graph {
+func buildGraph(resources []*Resource) *graph {
 	parents := map[int][]int{}
 	indexes := map[string]int{}
 
@@ -35,11 +35,11 @@ func buildGraph(resources []*Resource) *Graph {
 		}
 	}
 
-	g := New(len(resources))
+	g := newGraph(len(resources))
 
 	for w, arr := range parents {
 		for _, v := range arr {
-			g.AddEdge(v, w)
+			g.addEdge(v, w)
 		}
 	}
 

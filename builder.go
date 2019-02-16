@@ -5,8 +5,8 @@ import (
 	"sync"
 )
 
-// BuildCache allows a loose form of communication
-type BuildCache map[string]interface{}
+// buildCache allows a loose form of communication
+type buildCache map[string]interface{}
 
 // Factory allows specialized builder creation
 type Factory interface {
@@ -39,8 +39,8 @@ func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	return createSync(builders, g)
 }
 
-func createSync(builders []Builder, g *Graph) error {
-	ordered := Sort(g)
+func createSync(builders []Builder, g *graph) error {
+	ordered := sort(g)
 
 	var err error
 
@@ -132,8 +132,8 @@ func reverse(in []int) {
 	}
 }
 
-func deleteSync(builders []Builder, g *Graph) error {
-	order := Sort(g)
+func deleteSync(builders []Builder, g *graph) error {
+	order := sort(g)
 	reverse(order)
 
 	var err error

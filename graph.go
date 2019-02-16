@@ -1,4 +1,4 @@
-// Package graph is a helper package for developers dealing with creating, updating and tearing down resources
+// Package graph is meant for use by developers dealing with creating, updating and tearing down resources
 // using kubernetes controllers.
 package graph
 
@@ -10,22 +10,22 @@ import (
 	"strconv"
 )
 
-// Graph data type
-type Graph struct {
+// graph data type
+type graph struct {
 	v   int
 	adj [][]int
 }
 
-// New Graph with v vertices
-func New(v int) *Graph {
-	return &Graph{v: v, adj: make([][]int, v)}
+// new graph with v vertices
+func newGraph(v int) *graph {
+	return &graph{v: v, adj: make([][]int, v)}
 }
 
 // NewFromReader assumes number of vertices, number of edges, and then each edge per line
-func NewFromReader(r io.Reader) (*Graph, error) {
+func newFromReader(r io.Reader) (*graph, error) {
 	scanner := bufio.NewScanner(r)
 
-	var g *Graph
+	var g *graph
 	var err error
 	edges := -1
 	for scanner.Scan() {
@@ -39,7 +39,7 @@ func NewFromReader(r io.Reader) (*Graph, error) {
 			var v int
 			v, err = strconv.Atoi(s)
 			if err == nil {
-				g = New(v)
+				g = newGraph(v)
 			}
 		} else if edges == -1 {
 			edges, err = strconv.Atoi(s)
@@ -49,7 +49,7 @@ func NewFromReader(r io.Reader) (*Graph, error) {
 			if nums != 2 {
 				err = errors.New("illegal edge: " + s)
 			} else if err == nil {
-				g.AddEdge(v1, w1)
+				g.addEdge(v1, w1)
 			}
 			edges--
 		}
@@ -63,21 +63,21 @@ func NewFromReader(r io.Reader) (*Graph, error) {
 }
 
 // Vertices in the graph
-func (g *Graph) Vertices() int {
+func (g *graph) vertices() int {
 	return g.v
 }
 
-// Adjascent vertices to v1
-func (g *Graph) Adjascent(v1 int) []int {
+// adjascent vertices to v1
+func (g *graph) adjascent(v1 int) []int {
 	return g.adj[v1]
 }
 
 // AddEdge (v1, w1)
-func (g *Graph) AddEdge(v1, w1 int) {
+func (g *graph) addEdge(v1, w1 int) {
 	g.adj[v1] = append(g.adj[v1], w1)
 }
 
 // String representation
-func (g *Graph) String() string {
+func (g *graph) String() string {
 	return fmt.Sprintf("v=%v, adj=%v", g.v, g.adj)
 }

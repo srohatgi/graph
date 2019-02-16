@@ -1,20 +1,20 @@
 package graph
 
-// Visit is a user defined function that is passed the vertex id
-type Visit func(int) error
+// visit is a user defined function that is passed the vertex id
+type visit func(int) error
 
-// Sort orders the vertices in order of dependencies
-func Sort(g *Graph) []int {
+// sort orders the vertices in order of dependencies
+func sort(g *graph) []int {
 	// count neighbours that point to a given vertex
-	neighbours := make(map[int]int, g.Vertices())
+	neighbours := make(map[int]int, g.vertices())
 
-	for v := 0; v < g.Vertices(); v++ {
+	for v := 0; v < g.vertices(); v++ {
 		neighbours[v] = 0
-		for w := 0; w < g.Vertices(); w++ {
+		for w := 0; w < g.vertices(); w++ {
 			if w == v {
 				continue
 			}
-			for _, t := range g.Adjascent(w) {
+			for _, t := range g.adjascent(w) {
 				if t == v {
 					neighbours[v]++
 				}
@@ -34,7 +34,7 @@ func Sort(g *Graph) []int {
 			}
 		}
 
-		for _, w := range g.Adjascent(toRemove) {
+		for _, w := range g.adjascent(toRemove) {
 			neighbours[w]--
 		}
 
@@ -46,16 +46,16 @@ func Sort(g *Graph) []int {
 	return sorted
 }
 
-// DFS visits all nodes in the graph
-func DFS(g *Graph, visit Visit) {
-	visited := make([]bool, g.Vertices())
+// dfs visits all nodes in the graph
+func dfs(g *graph, visitor visit) {
+	visited := make([]bool, g.vertices())
 
-	var dfs func(w int) error
+	var dfsInner func(w int) error
 
-	dfs = func(w int) error {
+	dfsInner = func(w int) error {
 		var err error
-		for _, w := range g.Adjascent(w) {
-			err = dfs(w)
+		for _, w := range g.adjascent(w) {
+			err = dfsInner(w)
 			if err != nil {
 				break
 			}
@@ -66,12 +66,12 @@ func DFS(g *Graph, visit Visit) {
 		if visited[w] {
 			return nil
 		}
-		err = visit(w)
+		err = visitor(w)
 		visited[w] = true
 		return err
 	}
 
-	for v := 0; v < g.Vertices(); v++ {
-		dfs(v)
+	for v := 0; v < g.vertices(); v++ {
+		dfsInner(v)
 	}
 }
