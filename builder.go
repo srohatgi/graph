@@ -10,6 +10,8 @@ type buildCache map[string]interface{}
 
 // Factory allows specialized builder creation
 type Factory interface {
+	// Create is an initializer for a resource type
+	// currently, a Builder needs to be created per instance of Resource
 	Create(resource *Resource) Builder
 }
 
