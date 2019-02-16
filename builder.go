@@ -20,7 +20,7 @@ type Builder interface {
 	Update(in []Property) ([]Property, error)
 }
 
-// Sync up all resources
+// Sync resources
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 

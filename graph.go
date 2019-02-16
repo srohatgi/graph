@@ -1,3 +1,6 @@
+// Package graph is a helper package for developers dealing with creating, updating and tearing down resources
+// using kubernetes controllers.
+
 package graph
 
 import (
