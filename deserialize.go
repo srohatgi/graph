@@ -2,24 +2,31 @@ package graph
 
 // Resource models a virtual service
 type Resource struct {
-	// unique name of a resource in a given slice of Resource's
-	Name       string
-	Type       string
-	Bag        interface{}
+	// Name is expected to be unique in a given slice of Resource's
+	Name string
+	// Type is expected to be used for creating Builder's
+	Type string
+	// Bag is a convenient pointer, unused by the library
+	Bag interface{}
+	// Properties are input to the Builder
 	Properties []Property
-	DependsOn  []Dependency
+	// DependsOn are dependencies used for sorting Resource slice
+	DependsOn []Dependency
 }
 
 // Property is an arbitrary name value pair
 type Property struct {
+	// Name is unique per Resource
 	Name  string
 	Value string
 }
 
 // Dependency captures resource dependencies
 type Dependency struct {
+	// ResourceName refers to the unique Name in a slice of Resource's
 	ResourceName string
-	Properties   []Property
+	// Properties used by the Builder
+	Properties []Property
 }
 
 func buildGraph(resources []*Resource) *graph {
