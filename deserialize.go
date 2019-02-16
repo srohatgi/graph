@@ -16,6 +16,7 @@ type Dependency struct {
 type Resource struct {
 	Name       string
 	Type       string
+	Bag        interface{}
 	Properties []Property
 	DependsOn  []Dependency
 }

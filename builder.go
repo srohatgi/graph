@@ -1,6 +1,9 @@
 package graph
 
-import "errors"
+import (
+	"errors"
+	"sync"
+)
 
 // BuildCache allows a loose form of communication
 type BuildCache map[string]interface{}
@@ -45,8 +48,8 @@ func createSync(builders []Builder, g *Graph) error {
 
 	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
 		maxAttempts--
+		execList := []int{}
 		for _, i := range ordered {
-			var in, out []Property
 			res := builders[i].Get()
 			notReady := false
 			for _, dep := range res.DependsOn {
@@ -55,18 +58,26 @@ func createSync(builders []Builder, g *Graph) error {
 					notReady = true
 					break
 				}
-				in = append(in, buildCache[dep.ResourceName]...)
 			}
 			if notReady {
 				break
 			}
-			out, err = builders[i].Update(in)
-			if err != nil {
-				break
-			}
-			buildCache[res.Name] = append(buildCache[res.Name], out...)
-			resourcesLeft--
+			execList = append(execList, i)
 		}
+
+		// execute nodes that are ready
+		wg := new(sync.WaitGroup)
+		errs := map[int]chan error{}
+
+		for _, i := range execList {
+			wg.Add(1)
+			errs[i] = make(chan error)
+			go func(b Builder, c chan error) {
+				c <- execute(b, buildCache)
+			}(builders[i], errs[i])
+		}
+
+		resourcesLeft--
 	}
 
 	if resourcesLeft > 0 && err == nil {
@@ -74,6 +85,21 @@ func createSync(builders []Builder, g *Graph) error {
 	}
 
 	return err
+}
+
+func execute(b Builder, cache map[string][]Property) error {
+	var in []Property
+	res := b.Get()
+	for _, dep := range res.DependsOn {
+		in = append(in, cache[dep.ResourceName]...)
+	}
+
+	out, err := b.Update(in)
+	if err != nil {
+		return err
+	}
+	cache[res.Name] = append(cache[res.Name], out...)
+	return nil
 }
 
 func reverse(in []int) {
