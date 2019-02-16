@@ -11,18 +11,23 @@ type buildCache map[string]interface{}
 // Factory allows specialized builder creation
 type Factory interface {
 	// Create is an initializer for a resource type
-	// currently, a Builder needs to be created per instance of Resource
+	// NOTE: a Builder is created per Resource instance
 	Create(resource *Resource) Builder
 }
 
 // Builder allows deletion or update of resources
 type Builder interface {
+	// Get retrieves underlying Resource instance
 	Get() *Resource
+	// Delete the Resource
 	Delete() error
+	// Update or if not existing, create the Resource
 	Update(in []Property) ([]Property, error)
 }
 
 // Sync resources
+// the Resource slice is first sorted and then executed in order
+// if Resource's may be created or updated in parallel if possible
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 
