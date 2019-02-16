@@ -1,5 +1,15 @@
 package graph
 
+// Resource models a virtual service
+type Resource struct {
+	// unique name of a resource in a given slice of Resource's
+	Name       string
+	Type       string
+	Bag        interface{}
+	Properties []Property
+	DependsOn  []Dependency
+}
+
 // Property is an arbitrary name value pair
 type Property struct {
 	Name  string
@@ -10,15 +20,6 @@ type Property struct {
 type Dependency struct {
 	ResourceName string
 	Properties   []Property
-}
-
-// Resource models a virtual service
-type Resource struct {
-	Name       string
-	Type       string
-	Bag        interface{}
-	Properties []Property
-	DependsOn  []Dependency
 }
 
 func buildGraph(resources []*Resource) *graph {
