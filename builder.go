@@ -30,9 +30,8 @@ type builderOutput struct {
 	out    []Property
 }
 
-// Sync resources
-// the Resource slice is first sorted and then executed in order
-// if Resource's may be created or updated in parallel if possible
+// Sync maps Resource's to Builder's, and then performs either an Update
+// or Delete operation
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 

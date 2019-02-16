@@ -1,5 +1,11 @@
-// Package graph is meant for use by developers dealing with creating, updating and tearing down resources
-// using kubernetes controllers.
+// Package graph may be useful for developers dealing with creating, updating and tearing down resources.
+// The package assumes that a declarative model of resources exists.
+//
+// Developers start by mapping thier resources to the provided Resource{} data structure. Developers
+// also need to define a Factory{} interface for creating resource Builder{} interface.
+//
+// All this mapping leads to calling a single function which handles creation and deletion of resources:
+//  Sync()
 package graph
 
 import (
