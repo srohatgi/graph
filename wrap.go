@@ -2,18 +2,21 @@ package graph
 
 import "strings"
 
-// ErrorSlice returns a slice of errors.
-type ErrorSlice map[int]error
+// ErrorMap is a collection of errors. Integer offsets in the map are assumed to be
+// meaningful in the context of the function signature.
+type ErrorMap map[int]error
 
-// Get works around the issue of interface having a concrete nil value is not nil
-func (es *ErrorSlice) Get() error {
+// Get is required to work around the issue of interface having a concrete underlying
+// value nil is not a nil interface.
+func (es *ErrorMap) Get() error {
 	if es == nil || len(*es) == 0 {
 		return nil
 	}
 	return es
 }
 
-func (es *ErrorSlice) Error() string {
+// Error satisfies the error interface.
+func (es *ErrorMap) Error() string {
 	var sb strings.Builder
 	for index, err := range *es {
 		sb.WriteString(string(index))
@@ -25,7 +28,7 @@ func (es *ErrorSlice) Error() string {
 }
 
 // Size returns the numbers of errors contained in the slice.
-func (es *ErrorSlice) Size() int {
+func (es *ErrorMap) Size() int {
 	if es == nil {
 		return 0
 	}

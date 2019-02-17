@@ -1,19 +1,3 @@
-// Package graph may be useful for developers dealing with creating, updating and tearing down resources.
-// The package assumes that a declarative model of resources exists.
-//
-// Developers start by mapping thier resources to the provided Resource{} data structure. Developers
-// also need to define a Factory{} interface for creating resource Builder{} interface.
-//
-// All this mapping leads to calling a single function which handles creation and deletion of resources:
-//  err := Sync(resources, false, factory)
-// 
-// Sync method executes resource creation in parallel if it can. ErrorSlice is a new type that developers 
-// may use to get fine grained information on the issues.
-//  if es, ok := err.(*ErrorSlice); ok {
-//    for resourceIndex, err := range *es {
-//      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
-//    }
-//  }
 package graph
 
 import (
@@ -35,7 +19,7 @@ func newGraph(v int) *graph {
 	return &graph{v: v, adj: make([][]int, v)}
 }
 
-// NewFromReader assumes number of vertices, number of edges, and then each edge per line
+// newFromReader assumes number of vertices, number of edges, and then each edge per line
 func newFromReader(r io.Reader) (*graph, error) {
 	scanner := bufio.NewScanner(r)
 

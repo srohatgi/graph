@@ -1,3 +1,23 @@
+// Package graph may be useful for developers tasked with storage, compute and
+// network management for cloud microservices.  The methods and types in the
+// library enforce a declarative and extensible programming model. The library
+// assumes that a declarative model of defining a resource exists.
+//
+// A given Resource collection is mapped to Builder collection. A Builder
+// interface provides handy methods for creating, updating and tearing down
+// resources. The developer provides a Factory interface instance
+// for the library to achieve this mapping.
+//
+// The library provides a single method for bringing it all together:
+//  err := Sync(resources, false, factory) // refer to signature below
+//
+// Errors returned from the library may map to different resources in the
+// Resource slice. Use the following code snippet for troubleshooting:
+//  if em, ok := err.(*ErrorMap); ok {
+//    for resourceIndex, err := range *em {
+//      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
+//    }
+//  }
 package graph
 
 import (
@@ -8,20 +28,22 @@ import (
 // buildCache allows a loose form of communication
 type buildCache map[string]interface{}
 
-// Factory allows specialized builder creation
+// Factory allows specialized Builder creation.
 type Factory interface {
-	// Create is an initializer for a resource type
-	// NOTE: a Builder is created per Resource instance
+	// Create produces a new Builder. A Factory instance may inject
+	// context.Context object to be used inside of the Builder interface
+	// methods.
+	// NOTE: One Builder instance maps to a single Resource instance.
 	Create(resource *Resource) Builder
 }
 
-// Builder allows deletion or update of resources
+// Builder methods enable Resource management.
 type Builder interface {
-	// Get retrieves underlying Resource instance
+	// Get retrieves underlying Resource instance.
 	Get() *Resource
-	// Delete the Resource
+	// Delete the Resource.
 	Delete() error
-	// Update or if not existing, create the Resource
+	// Update or if not existing, create the Resource.
 	Update(in []Property) ([]Property, error)
 }
 
@@ -30,8 +52,10 @@ type builderOutput struct {
 	out    []Property
 }
 
-// Sync maps Resource's to Builder's, and then performs either an Update()
-// or Delete() operation
+// Sync method is used to enforce the programming model. Internally, the method
+// maps the Resource slice to a Builder slice (using the Factory instance), and
+// then executes appropriate Builder interface methods. When a subset of resources
+// can be updated or created in parallel, the method attempts to do it.
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 
@@ -102,7 +126,7 @@ func createSync(builders []Builder, g *graph) error {
 
 		wg.Wait()
 
-		var errs ErrorSlice
+		errs := ErrorMap{}
 		for i, c := range output {
 			e := <-c
 			if e.result != nil {
@@ -150,6 +174,8 @@ func reverse(in []int) {
 func deleteSync(builders []Builder, g *graph) error {
 	order := sort(g)
 	reverse(order)
+
+	logger("order of deletion", order)
 
 	var err error
 

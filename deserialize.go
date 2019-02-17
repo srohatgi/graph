@@ -1,22 +1,21 @@
 package graph
 
-// Resource models a virtual service
+// Resource is an abstract declarative definition for compute, storage and network services.
+// Examples: AWS Kinesis, AWS CloudFormation, Kubernetes Deployment etc.
 type Resource struct {
-	// Name is expected to be unique in a given slice of Resource's
+	// Name provides uniqueness for a given slice of resources.
 	Name string
-	// Type is expected to be used for creating Builder's
+	// Type is a grouping of similar resources.
 	Type string
-	// Bag is a convenience for developers, it's unused by the library
-	Bag interface{}
-	// Properties are input to the Builder
+	// Properties allow resources to depend on each other.
 	Properties []Property
-	// DependsOn are names of Resource's this Resource requires to be built
+	// DependsOn enforces order of creation and deletion of resources in a given slice.
 	DependsOn []string
 }
 
-// Property is an arbitrary name value pair
+// Property captures data required or produced when a given Resource is created/ updated.
+// Example: ARN of AWS Kinesis stream.
 type Property struct {
-	// Name is unique per Resource
 	Name  string
 	Value string
 }
