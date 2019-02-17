@@ -1,23 +1,32 @@
-// Package graph may be useful for developers tasked with storage, compute and
+// Package graph library may be useful for developers tasked with storage, compute and
 // network management for cloud microservices.  The methods and types in the
-// library enforce a declarative and extensible programming model. The library
+// library enforce an extensible and modular programming model. The library
 // assumes that a declarative model of defining a resource exists.
 //
-// A given Resource collection is mapped to Builder collection. A Builder
-// interface provides handy methods for creating, updating and tearing down
-// resources. The developer provides a Factory interface instance
-// for the library to achieve this mapping.
+// Types and Values
 //
-// The library provides a single method for bringing it all together:
-//  err := Sync(resources, false, factory) // refer to signature below
+// A Resource is a declarative abstraction of a storage, compute or network
+// service. A Builder is an interface for managing a Resource. A Factory is
+// an interface for creating a Builder, given a Resource.
 //
-// Errors returned from the library may map to different resources in the
-// Resource slice. Use the following code snippet for troubleshooting:
+// The library manages a collection of related resources at a given time. Hence,
+// multiple errors may be produced concurrently. There is a handy ErrorMap struct
+// that allows developers to parse out different errors and map them to individual
+// resources. Use the following code snippet:
 //  if em, ok := err.(*ErrorMap); ok {
 //    for resourceIndex, err := range *em {
 //      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
 //    }
 //  }
+//
+// Methods
+//
+// The library provides ways to manage an ordered collection of resources. Order is
+// specified by naming resources uniquely in a collection, and having a resource
+// depend on a set of other resources within the same collection.
+//
+// The Sync() method provides a method for managing a collection of resources:
+//  err := Sync(resources, false, factory) // refer to signature below
 package graph
 
 import (
