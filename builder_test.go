@@ -38,19 +38,6 @@ func (k *deployment) Get() *Resource                           { return k.Resour
 func (k *deployment) Update(in []Property) ([]Property, error) { return nil, nil }
 func (k *deployment) Delete() error                            { return nil }
 
-func (f *factory) Example(r *Resource) Builder {
-	switch r.Type {
-	case "kinesis":
-		// inject context, arbitrary parameters
-		return &kinesis{r, f.ctxt, nil}
-	case "dynamo":
-		return &dynamo{r, f.ctxt}
-	case "deployment":
-		return &deployment{r, f.ctxt}
-	}
-	return nil
-}
-
 func (f *factory) Create(r *Resource) Builder {
 	switch r.Type {
 	case "kinesis":
