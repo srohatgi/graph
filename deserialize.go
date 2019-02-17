@@ -9,12 +9,14 @@ type Resource struct {
 	Type string
 	// Properties allow resources to depend on each other.
 	Properties []Property
-	// DependsOn enforces order of creation and deletion of resources in a given slice.
+	// DependsOn enforces order of creation and deletion of resources in a given slice. Each
+	// string in the slice refers to a Resource.Name
 	DependsOn []string
 }
 
 // Property captures data required or produced when a given Resource is created/ updated.
-// Example: ARN of AWS Kinesis stream.
+// Example: ARN of AWS Kinesis stream is produced when a new Kinesis stream is created. This
+// same property may be consumed in a new Kubernetes Deployment.
 type Property struct {
 	Name  string
 	Value string
