@@ -107,7 +107,7 @@ func createSync(builders []Builder, g *graph) error {
 			e := <-c
 			if e.result != nil {
 				logger("error executing builder", "builder", builders[i], "error", e)
-				errs = append(errs, e.result)
+				errs[i] = e.result
 				continue
 			}
 

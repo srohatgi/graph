@@ -3,7 +3,7 @@ package graph
 import "strings"
 
 // ErrorSlice returns a slice of errors.
-type ErrorSlice []error
+type ErrorSlice map[int]error
 
 // Get works around the issue of interface having a concrete nil value is not nil
 func (es *ErrorSlice) Get() error {
@@ -15,8 +15,11 @@ func (es *ErrorSlice) Get() error {
 
 func (es *ErrorSlice) Error() string {
 	var sb strings.Builder
-	for _, e := range *es {
-		sb.WriteString(e.Error())
+	for index, err := range *es {
+		sb.WriteString(string(index))
+		sb.WriteString(":")
+		sb.WriteString(err.Error())
+		sb.WriteString(";")
 	}
 	return sb.String()
 }
