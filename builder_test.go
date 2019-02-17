@@ -1,6 +1,9 @@
 package graph
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 type factory struct{}
 
@@ -62,6 +65,7 @@ func TestSync(t *testing.T) {
 	err := Sync(resources, false, f)
 
 	if err != nil {
+		fmt.Print(err)
 		t.Fatalf("unable to sync %v", err)
 	}
 
