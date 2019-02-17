@@ -12,12 +12,13 @@ type MyFactory struct {
 	ctxt context.Context
 }
 
+// Create satisfies the graph.Factory interface
 func (f *MyFactory) Create(r *graph.Resource) graph.Builder {
 	switch r.Type {
 	case "kinesis":
 		// a Builder may be injected with any user defined types
-		// here we are passing nil
-		return &Kinesis{r, f.ctxt, nil}
+		// here we are passing a custom myUserDefinedType struct
+		return &Kinesis{r, f.ctxt, &myUserDefinedType{}}
 	case "dynamo":
 		return &Dynamo{r, f.ctxt}
 	case "deployment":
@@ -27,13 +28,13 @@ func (f *MyFactory) Create(r *graph.Resource) graph.Builder {
 }
 
 /*
-This example shows a basic resource synchronization. There are three
+This example shows basic resource synchronization. There are three
 different resources that we need to build: an AWS Kinesis stream, an
 Aws Dynamo DB table, and finally a Kubernetes deployment of a micro-
 service that depends on both of the other resources being created
 properly.
 */
-func Example_basic() {
+func Example_usage() {
 	factory := &MyFactory{context.Background()}
 
 	mykin := "mykin"
@@ -56,10 +57,13 @@ func Example_basic() {
 	}
 }
 
+// AWS Kinesis resource definition
+type myUserDefinedType struct{}
+
 type Kinesis struct {
 	*graph.Resource
-	ctxt context.Context
-	bag  interface{}
+	ctxt   context.Context
+	custom *myUserDefinedType
 }
 
 func (k *Kinesis) Get() *graph.Resource {
@@ -72,6 +76,7 @@ func (k *Kinesis) Delete() error {
 	return nil
 }
 
+// AWS Dynamo DB resource definition
 type Dynamo struct {
 	*graph.Resource
 	ctxt context.Context
@@ -87,6 +92,7 @@ func (k *Dynamo) Delete() error {
 	return nil
 }
 
+// Kubernetes Deployment resource definition
 type Deployment struct {
 	*graph.Resource
 	ctxt context.Context
