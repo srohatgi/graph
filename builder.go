@@ -30,8 +30,8 @@ type builderOutput struct {
 	out    []Property
 }
 
-// Sync maps Resource's to Builder's, and then performs either an Update
-// or Delete operation
+// Sync maps Resource's to Builder's, and then performs either an Update()
+// or Delete() operation
 func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	g := buildGraph(resources)
 
@@ -67,6 +67,7 @@ func createSync(builders []Builder, g *graph) error {
 			res := builders[i].Get()
 			// check if we've already executed
 			if _, alreadyExecuted := buildCache[res.Name]; alreadyExecuted {
+				logger("already executed", i)
 				continue
 			}
 
@@ -86,29 +87,27 @@ func createSync(builders []Builder, g *graph) error {
 
 		// execute nodes that are ready
 		var wg sync.WaitGroup
-		errs := map[int]chan builderOutput{}
+		output := map[int]chan builderOutput{}
 
 		logger("executing ", execList)
 		for _, i := range execList {
 			wg.Add(1)
-			errs[i] = make(chan builderOutput, 1)
+			output[i] = make(chan builderOutput, 1)
 
 			go func(b Builder, c chan builderOutput) {
 				defer wg.Done()
 				c <- execute(b, buildCache)
-			}(builders[i], errs[i])
+			}(builders[i], output[i])
 		}
 
 		wg.Wait()
-		logger("done waiting")
 
-		errCnt := 0
-		for i, c := range errs {
+		var errs ErrorSlice
+		for i, c := range output {
 			e := <-c
 			if e.result != nil {
 				logger("error executing builder", "builder", builders[i], "error", e)
-				err = e.result
-				errCnt++
+				errs[i] = e.result
 				continue
 			}
 
@@ -116,7 +115,8 @@ func createSync(builders []Builder, g *graph) error {
 			buildCache[name] = append(buildCache[name], e.out...)
 		}
 
-		resourcesLeft -= len(execList) - errCnt
+		resourcesLeft -= len(execList) - errs.Size()
+		err = errs.Get()
 	}
 
 	if resourcesLeft > 0 && err == nil {
