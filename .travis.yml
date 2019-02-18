@@ -5,5 +5,5 @@ env:
 jobs:
     include:
         - stage: test
-          script: go test kkn.fi/vanity
+          script: go test github.com/srohatgi/graph
           install: skip
