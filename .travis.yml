@@ -1,0 +1,9 @@
+language: go
+go: "1.11.x"
+env:
+    - GO111MODULE=on
+jobs:
+    include:
+        - stage: test
+          script: go test github.com/srohatgi/graph
+          install: skip
