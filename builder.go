@@ -31,6 +31,7 @@ package graph
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -73,6 +74,10 @@ func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	builders := []Builder{}
 
 	for _, r := range resources {
+		b := factory.Create(r)
+		if b == nil {
+			return fmt.Errorf("unable to create builder for resource: %v", *r)
+		}
 		builders = append(builders, factory.Create(r))
 	}
 
