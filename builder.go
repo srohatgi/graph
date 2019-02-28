@@ -62,6 +62,23 @@ type builderOutput struct {
 	out    []Property
 }
 
+type protoBuilder struct {
+	r     *Resource
+	udef  interface{}
+	updFn func(interface{}, []Property) ([]Property, error)
+	delFn func(interface{}) error
+}
+
+func (p *protoBuilder) Get() *Resource                           { return p.r }
+func (p *protoBuilder) Update(in []Property) ([]Property, error) { return p.updFn(p.udef, in) }
+func (p *protoBuilder) Delete() error                            { return p.delFn(p.udef) }
+
+// MakeBuilder is a convenient utility to create Builder's
+// uDef is a custom structure instance that is injected into updFn & delFn
+func MakeBuilder(r *Resource, uDef interface{}, updFn func(interface{}, []Property) ([]Property, error), delFn func(interface{}) error) Builder {
+	return &protoBuilder{r, uDef, updFn, delFn}
+}
+
 // Sync method is used to enforce the programming model. Internally, the method
 // maps the Resource slice to a Builder slice (using the Factory instance), and
 // then executes appropriate Builder interface methods. When a subset of resources
