@@ -9,7 +9,8 @@ import (
 
 // MyFactory keeps a context object
 type MyFactory struct {
-	ctxt context.Context
+	ctxt          context.Context
+	kinesisCustom *myUserDefinedType
 }
 
 // Create satisfies the graph.Factory interface
@@ -18,7 +19,15 @@ func (f *MyFactory) Create(r *graph.Resource) graph.Builder {
 	case "kinesis":
 		// a Builder may be injected with any user defined types
 		// here we are passing a custom myUserDefinedType struct
-		return &Kinesis{r, f.ctxt, &myUserDefinedType{}}
+		updFn := func(u interface{}, in []graph.Property) ([]graph.Property, error) {
+			// use the u.streamName to construct your kinesis stream
+			return nil, nil
+		}
+		delFn := func(u interface{}) error {
+			// use the u.streamName to delete the stream
+			return nil
+		}
+		return graph.MakeBuilder(r, f.kinesisCustom, updFn, delFn)
 	case "dynamo":
 		return &Dynamo{r, f.ctxt}
 	case "deployment":
@@ -35,7 +44,8 @@ service that depends on both of the other resources being created
 properly.
 */
 func Example_usage() {
-	factory := &MyFactory{context.Background()}
+	ctxt := context.Background()
+	factory := &MyFactory{ctxt, &myUserDefinedType{ctxt, "myEventStream"}}
 
 	mykin := "mykin"
 
@@ -58,22 +68,9 @@ func Example_usage() {
 }
 
 // AWS Kinesis resource definition
-type myUserDefinedType struct{}
-
-type Kinesis struct {
-	*graph.Resource
-	ctxt   context.Context
-	custom *myUserDefinedType
-}
-
-func (k *Kinesis) Get() *graph.Resource {
-	return k.Resource
-}
-func (k *Kinesis) Update(in []graph.Property) ([]graph.Property, error) {
-	return nil, nil
-}
-func (k *Kinesis) Delete() error {
-	return nil
+type myUserDefinedType struct {
+	ctxt       context.Context
+	streamName string
 }
 
 // AWS Dynamo DB resource definition
