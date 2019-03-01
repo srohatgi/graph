@@ -31,81 +31,83 @@ package graph
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 )
 
-// buildCache allows a loose form of communication
-type buildCache map[string]interface{}
-
-// Factory allows specialized Builder creation.
-type Factory interface {
-	// Create produces a new Builder. A Factory instance may inject
-	// context.Context object to be used inside of the Builder interface
-	// methods.
-	// NOTE: One Builder instance maps to a single Resource instance.
-	Create(resource *Resource) Builder
+// Dependency captures inter resource dependencies
+type Dependency struct {
+	FromResourceName string
+	FieldName        string
+	ToFieldName      string
 }
 
-// Builder methods enable Resource management.
-type Builder interface {
-	// Get retrieves underlying Resource instance.
-	Get() *Resource
+// Resource is an abstract declarative definition for compute, storage and network services.
+// Examples: AWS Kinesis, AWS CloudFormation, Kubernetes Deployment etc.
+type Resource interface {
+	// Get retrieves underlying Resource instance name. This allows creation
+	// of multiple resources of the same Type.
+	Name() string
+	// Get retrieves underlying Resource type.
+	Type() string
+	// Dependencies fetches a given Builder's dependency list.
+	Dependencies() []Dependency
 	// Delete the Resource.
 	Delete() error
 	// Update or if not existing, create the Resource.
-	Update(in []Property) ([]Property, error)
+	Update() (string, error)
 }
 
 type builderOutput struct {
 	result error
-	out    []Property
+	status string
 }
 
 type protoBuilder struct {
-	r     *Resource
-	udef  interface{}
-	updFn func(interface{}, []Property) ([]Property, error)
-	delFn func(interface{}) error
+	name         string
+	resourceType string
+	dependencies []Dependency
+	uDef         interface{}
+	updFn        func(interface{}) (string, error)
+	delFn        func(interface{}) error
 }
 
-func (p *protoBuilder) Get() *Resource                           { return p.r }
-func (p *protoBuilder) Update(in []Property) ([]Property, error) { return p.updFn(p.udef, in) }
-func (p *protoBuilder) Delete() error                            { return p.delFn(p.udef) }
+func (p *protoBuilder) Name() string               { return p.name }
+func (p *protoBuilder) Type() string               { return p.resourceType }
+func (p *protoBuilder) Update() (string, error)    { return p.updFn(p.uDef) }
+func (p *protoBuilder) Delete() error              { return p.delFn(p.uDef) }
+func (p *protoBuilder) Dependencies() []Dependency { return p.dependencies }
 
-// MakeBuilder is a convenient utility to create Builder's in a cheap way.
+// MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
-func MakeBuilder(r *Resource, uDef interface{}, updFn func(interface{}, []Property) ([]Property, error), delFn func(interface{}) error) Builder {
-	return &protoBuilder{r, uDef, updFn, delFn}
+func MakeResource(name, resourceType string, dependencies []Dependency, uDef interface{}, updFn func(interface{}) (string, error), delFn func(interface{}) error) Resource {
+	return &protoBuilder{name, resourceType, dependencies, uDef, updFn, delFn}
 }
 
 // Sync method is used to enforce the programming model. Internally, the method
 // maps the Resource slice to a Builder slice (using the Factory instance), and
 // then executes appropriate Builder interface methods. When a subset of resources
 // can be updated or created in parallel, the method attempts to do it.
-func Sync(resources []*Resource, toDelete bool, factory Factory) error {
+func Sync(resources []Resource, toDelete bool) error {
 	g := buildGraph(resources)
 
 	logger("starting sync")
 
-	builders := []Builder{}
-
-	for _, r := range resources {
-		b := factory.Create(r)
-		if b == nil {
-			return fmt.Errorf("unable to create builder for resource: %v", *r)
-		}
-		builders = append(builders, factory.Create(r))
-	}
-
 	if toDelete {
-		return deleteSync(builders, g)
+		return deleteSync(resources, g)
 	}
 
-	return createSync(builders, g)
+	return createSync(resources, g)
 }
 
-func createSync(builders []Builder, g *graph) error {
+func getProperty(r Resource, name string) interface{} {
+	return nil
+}
+
+func setProperty(r Resource, name string, value interface{}) {
+
+}
+
+func createSync(resources []Resource, g *graph) error {
 	ordered := sort(g)
 
 	var err error
@@ -113,22 +115,22 @@ func createSync(builders []Builder, g *graph) error {
 	resourcesLeft := len(ordered)
 	maxAttempts := len(ordered)
 
-	buildCache := map[string][]Property{}
+	buildCache := map[string]bool{}
 	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
 		maxAttempts--
 		execList := []int{}
 		for _, i := range ordered {
 
-			res := builders[i].Get()
+			res := resources[i]
 			// check if we've already executed
-			if _, alreadyExecuted := buildCache[res.Name]; alreadyExecuted {
+			if _, alreadyExecuted := buildCache[res.Name()]; alreadyExecuted {
 				logger("already executed", i)
 				continue
 			}
 
 			ready := true
-			for _, dep := range res.DependsOn {
-				if _, found := buildCache[dep]; !found {
+			for _, dep := range res.Dependencies() {
+				if _, found := buildCache[dep.FromResourceName]; !found {
 					// cannot proceed as this resource cannot be processed
 					ready = false
 					break
@@ -149,10 +151,10 @@ func createSync(builders []Builder, g *graph) error {
 			wg.Add(1)
 			output[i] = make(chan builderOutput, 1)
 
-			go func(b Builder, c chan builderOutput) {
+			go func(b Resource, c chan builderOutput) {
 				defer wg.Done()
-				c <- execute(b, buildCache)
-			}(builders[i], output[i])
+				c <- execute(b, resources)
+			}(resources[i], output[i])
 		}
 
 		wg.Wait()
@@ -161,13 +163,13 @@ func createSync(builders []Builder, g *graph) error {
 		for i, c := range output {
 			e := <-c
 			if e.result != nil {
-				logger("error executing builder", "builder", builders[i], "error", e)
+				logger("error executing resource", "resource", resources[i], "error", e)
 				errs[i] = e.result
 				continue
 			}
 
-			name := builders[i].Get().Name
-			buildCache[name] = append(buildCache[name], e.out...)
+			name := resources[i].Name()
+			buildCache[name] = true
 		}
 
 		resourcesLeft -= len(execList) - errs.Size()
@@ -181,16 +183,19 @@ func createSync(builders []Builder, g *graph) error {
 	return err
 }
 
-func execute(b Builder, cache map[string][]Property) builderOutput {
-	var in []Property
-	res := b.Get()
-	for _, dep := range res.DependsOn {
-		in = append(in, cache[dep]...)
+func execute(r Resource, cache []Resource) builderOutput {
+	for _, dep := range r.Dependencies() {
+		for _, from := range cache {
+			if from.Name() == dep.FromResourceName {
+				prop := getProperty(from, dep.FieldName)
+				setProperty(r, dep.ToFieldName, prop)
+			}
+		}
 	}
 
-	out, err := b.Update(in)
+	out, err := r.Update()
 	if err != nil {
-		return builderOutput{err, nil}
+		return builderOutput{result: err}
 	}
 	return builderOutput{nil, out}
 }
@@ -202,7 +207,7 @@ func reverse(in []int) {
 	}
 }
 
-func deleteSync(builders []Builder, g *graph) error {
+func deleteSync(resources []Resource, g *graph) error {
 	order := sort(g)
 	reverse(order)
 
@@ -211,7 +216,7 @@ func deleteSync(builders []Builder, g *graph) error {
 	var err error
 
 	for _, i := range order {
-		err = builders[i].Delete()
+		err = resources[i].Delete()
 		if err != nil {
 			break
 		}

@@ -6,70 +6,34 @@ import (
 	"testing"
 )
 
-type factory struct {
-	ctxt context.Context
-}
-
 type kinesis struct {
-	*Resource
 	ctxt context.Context
-	bag  interface{}
+	Arn  interface{}
 }
-
-func (k *kinesis) Get() *Resource                           { return k.Resource }
-func (k *kinesis) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *kinesis) Delete() error                            { return nil }
 
 type dynamo struct {
-	*Resource
 	ctxt context.Context
 }
-
-func (k *dynamo) Get() *Resource                           { return k.Resource }
-func (k *dynamo) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *dynamo) Delete() error                            { return nil }
 
 type deployment struct {
-	*Resource
-	ctxt context.Context
-}
-
-func (k *deployment) Get() *Resource                           { return k.Resource }
-func (k *deployment) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *deployment) Delete() error                            { return nil }
-
-func (f *factory) Create(r *Resource) Builder {
-	switch r.Type {
-	case "kinesis":
-		return &kinesis{r, f.ctxt, nil}
-	case "dynamo":
-		return &dynamo{r, f.ctxt}
-	case "deployment":
-		return &deployment{r, f.ctxt}
-	}
-	return nil
+	ctxt       context.Context
+	KinesisArn interface{}
 }
 
 func TestSync(t *testing.T) {
 	mykin := "mykin"
 
-	resources := []*Resource{{
-		Name: mykin,
-		Type: "kinesis",
-	}, {
-		Name: "mydyn",
-		Type: "dynamo",
-	}, {
-		Name:      "mydep1",
-		Type:      "deployment",
-		DependsOn: []string{mykin},
-	}}
+	ctxt := context.Background()
 
-	f := &factory{}
+	kinesisResource := MakeResource(mykin, "kinesis", nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	dynamoResource := MakeResource("mydyn", "dynamo", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", "deployment", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
 	WithLogger(t.Log)
 
-	err := Sync(resources, false, f)
+	err := Sync(resources, false)
 
 	if err != nil {
 		fmt.Print(err)
