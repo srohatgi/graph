@@ -17,7 +17,7 @@ func (s *sleeper) run() {
 		s.t.Logf("Worker %d throwing error", s.id)
 		s.tellme <- errors.New("issue in " + string(s.id))
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Millisecond)
 	s.t.Logf("Worker %v done successfully", s.id)
 }
 

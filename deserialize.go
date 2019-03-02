@@ -11,7 +11,7 @@ func buildGraph(resources []Resource) *graph {
 	for i := range resources {
 		parents[i] = map[int]bool{}
 		for _, dep := range resources[i].Dependencies() {
-			parents[i][indexes[dep.FromResourceName]] = true
+			parents[i][indexes[dep.FromResource]] = true
 		}
 	}
 

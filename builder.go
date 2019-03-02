@@ -1,7 +1,7 @@
 // Package graph library may be useful for developers tasked with storage, compute and
 // network management for cloud microservices.  The methods and types in the
 // library enforce an extensible and modular programming model. The library
-// assumes that a declarative model of defining a resource exists.
+// assumes that a declarative model of defining and manipulating a resource exists.
 //
 // Types and Values
 //
@@ -11,7 +11,7 @@
 //
 // The library manages a collection of related resources at a given time. Hence,
 // multiple errors may be produced concurrently. There is a handy ErrorMap struct
-// that allows developers to parse out different errors and map them to individual
+// that allows developers to parse out multiple errors and map them to individual
 // resources. Use the following code snippet:
 //  if em, ok := err.(*ErrorMap); ok {
 //    for resourceIndex, err := range *em {
@@ -19,14 +19,14 @@
 //    }
 //  }
 //
-// Methods
+// Functions
 //
 // The library provides ways to manage an ordered collection of resources. Order is
 // specified by naming resources uniquely in a collection, and having a resource
 // depend on a set of other resources within the same collection.
 //
-// The Sync() method provides a method for managing a collection of resources:
-//  err := Sync(resources, false, factory) // refer to signature below
+// The Sync() function provides a method for managing a collection of resources:
+//  status, err := Sync(resources, false) // refer to signature below
 package graph
 
 import (
@@ -36,11 +36,15 @@ import (
 	"sync"
 )
 
-// Dependency captures inter resource dependencies
+// Dependency captures inter Resource dependencies. Specifying FromField
+// and ToField enables copying over of value to current Resource.
 type Dependency struct {
-	FromResourceName string
-	FieldName        string
-	ToFieldName      string
+	// FromResource is another resource specified in the same slice.
+	FromResource string
+	// FromField is a public field from the struct implementing the Resource.
+	FromField string
+	// ToField is a public field in the current Resource's implementing struct.
+	ToField string
 }
 
 // Resource is an abstract declarative definition for compute, storage and network services.
@@ -60,8 +64,8 @@ type Resource interface {
 }
 
 type builderOutput struct {
-	result error
 	status string
+	result error
 }
 
 type protoBuilder struct {
@@ -89,18 +93,19 @@ func MakeResource(name, resourceType string, dependencies []Dependency, uDef int
 // maps the Resource slice to a Builder slice (using the Factory instance), and
 // then executes appropriate Builder interface methods. When a subset of resources
 // can be updated or created in parallel, the method attempts to do it.
-func Sync(resources []Resource, toDelete bool) error {
+func Sync(resources []Resource, toDelete bool) (map[string]string, error) {
 	g := buildGraph(resources)
 
 	logger("starting sync")
 
 	if toDelete {
-		return deleteSync(resources, g)
+		return nil, deleteSync(resources, g)
 	}
 
 	return createSync(resources, g)
 }
 
+// check that resources have correct dependencies
 func check(resources []Resource) error {
 	cache := map[string]Resource{}
 
@@ -119,10 +124,13 @@ func check(resources []Resource) error {
 
 		// validate each dependency
 		for _, dep := range r.Dependencies() {
-			if err := checkField(r, dep.ToFieldName); err != nil {
+			if len(dep.ToField) == 0 && len(dep.FromField) > 0 || len(dep.ToField) > 0 && len(dep.FromField) == 0 {
+				return fmt.Errorf("Resource %s incorrect specification of dependency on %s, fix FromField, ToField", r.Name(), dep.FromResource)
+			}
+			if err := checkField(r, dep.ToField); err != nil {
 				return err
 			}
-			if err := checkField(cache[dep.FromResourceName], dep.FromResourceName); err != nil {
+			if err := checkField(cache[dep.FromResource], dep.FromField); err != nil {
 				return err
 			}
 		}
@@ -132,6 +140,10 @@ func check(resources []Resource) error {
 }
 
 func checkField(r Resource, field string) error {
+	if len(field) == 0 {
+		return nil
+	}
+
 	if reflect.ValueOf(r).Elem().Type().Name() == "protoBuilder" {
 		if !reflect.ValueOf(r).Elem().FieldByName("UDef").Elem().Elem().FieldByName(field).IsValid() {
 			return fmt.Errorf("in %s embedded Resource did not find field %s", r.Name(), field)
@@ -145,6 +157,10 @@ func checkField(r Resource, field string) error {
 }
 
 func copyValue(to Resource, toField string, from Resource, fromField string) {
+	if len(toField) == 0 || len(fromField) == 0 {
+		return
+	}
+
 	var fromValue reflect.Value
 	if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
 		fromValue = reflect.ValueOf(from).Elem().FieldByName("UDef").Elem().Elem().FieldByName(fromField)
@@ -158,7 +174,7 @@ func copyValue(to Resource, toField string, from Resource, fromField string) {
 	}
 }
 
-func createSync(resources []Resource, g *graph) error {
+func createSync(resources []Resource, g *graph) (map[string]string, error) {
 	ordered := sort(g)
 
 	var err error
@@ -167,6 +183,7 @@ func createSync(resources []Resource, g *graph) error {
 	maxAttempts := len(ordered)
 
 	buildCache := map[string]Resource{}
+	status := map[string]string{}
 	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
 		maxAttempts--
 		execList := []int{}
@@ -181,7 +198,7 @@ func createSync(resources []Resource, g *graph) error {
 
 			ready := true
 			for _, dep := range res.Dependencies() {
-				if _, found := buildCache[dep.FromResourceName]; !found {
+				if _, found := buildCache[dep.FromResource]; !found {
 					// cannot proceed as this resource cannot be processed
 					ready = false
 					break
@@ -213,6 +230,11 @@ func createSync(resources []Resource, g *graph) error {
 		errs := ErrorMap{}
 		for i, c := range output {
 			e := <-c
+
+			if len(e.status) > 0 {
+				status[resources[i].Name()] = e.status
+			}
+
 			if e.result != nil {
 				logger("error executing resource", "resource", resources[i], "error", e)
 				errs[i] = e.result
@@ -231,16 +253,16 @@ func createSync(resources []Resource, g *graph) error {
 		err = errors.New("max attempts at computing resources exhausted, giving up")
 	}
 
-	return err
+	return status, err
 }
 
 func execute(r Resource, cache map[string]Resource) builderOutput {
 	for _, dep := range r.Dependencies() {
-		copyValue(r, dep.ToFieldName, cache[dep.FromResourceName], dep.FieldName)
+		copyValue(r, dep.ToField, cache[dep.FromResource], dep.FromField)
 	}
 
 	out, err := r.Update()
-	return builderOutput{err, out}
+	return builderOutput{out, err}
 }
 
 func reverse(in []int) {
