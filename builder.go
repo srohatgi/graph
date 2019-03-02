@@ -122,7 +122,7 @@ func createSync(resources []Resource, g *graph) error {
 	resourcesLeft := len(ordered)
 	maxAttempts := len(ordered)
 
-	buildCache := map[string]bool{}
+	buildCache := map[string]Resource{}
 	for maxAttempts > 0 && resourcesLeft > 0 && err == nil {
 		maxAttempts--
 		execList := []int{}
@@ -160,7 +160,7 @@ func createSync(resources []Resource, g *graph) error {
 
 			go func(b Resource, c chan builderOutput) {
 				defer wg.Done()
-				c <- execute(b, resources)
+				c <- execute(b, buildCache)
 			}(resources[i], output[i])
 		}
 
@@ -176,7 +176,7 @@ func createSync(resources []Resource, g *graph) error {
 			}
 
 			name := resources[i].Name()
-			buildCache[name] = true
+			buildCache[name] = resources[i]
 		}
 
 		resourcesLeft -= len(execList) - errs.Size()
@@ -190,13 +190,9 @@ func createSync(resources []Resource, g *graph) error {
 	return err
 }
 
-func execute(r Resource, cache []Resource) builderOutput {
+func execute(r Resource, cache map[string]Resource) builderOutput {
 	for _, dep := range r.Dependencies() {
-		for _, from := range cache {
-			if from.Name() == dep.FromResourceName {
-				copyValue(r, dep.ToFieldName, from, dep.FieldName)
-			}
-		}
+		copyValue(r, dep.ToFieldName, cache[dep.FromResourceName], dep.FieldName)
 	}
 
 	out, err := r.Update()
