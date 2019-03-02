@@ -31,6 +31,7 @@ package graph
 
 import (
 	"errors"
+	"reflect"
 	"sync"
 )
 
@@ -63,19 +64,19 @@ type builderOutput struct {
 }
 
 type protoBuilder struct {
-	name         string
-	resourceType string
-	dependencies []Dependency
-	uDef         interface{}
-	updFn        func(interface{}) (string, error)
-	delFn        func(interface{}) error
+	ResourceName         string
+	ResourceType         string
+	ResourceDependencies []Dependency
+	UDef                 interface{}
+	UpdFn                func(interface{}) (string, error)
+	DelFn                func(interface{}) error
 }
 
-func (p *protoBuilder) Name() string               { return p.name }
-func (p *protoBuilder) Type() string               { return p.resourceType }
-func (p *protoBuilder) Update() (string, error)    { return p.updFn(p.uDef) }
-func (p *protoBuilder) Delete() error              { return p.delFn(p.uDef) }
-func (p *protoBuilder) Dependencies() []Dependency { return p.dependencies }
+func (p *protoBuilder) Name() string               { return p.ResourceName }
+func (p *protoBuilder) Type() string               { return p.ResourceType }
+func (p *protoBuilder) Update() (string, error)    { return p.UpdFn(p.UDef) }
+func (p *protoBuilder) Delete() error              { return p.DelFn(p.DelFn) }
+func (p *protoBuilder) Dependencies() []Dependency { return p.ResourceDependencies }
 
 // MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
@@ -100,6 +101,8 @@ func Sync(resources []Resource, toDelete bool) error {
 }
 
 func getProperty(r Resource, name string) interface{} {
+	s := reflect.ValueOf(r)
+	logger("type of r", reflect.TypeOf(r), "value of r", s)
 	return nil
 }
 
@@ -194,10 +197,7 @@ func execute(r Resource, cache []Resource) builderOutput {
 	}
 
 	out, err := r.Update()
-	if err != nil {
-		return builderOutput{result: err}
-	}
-	return builderOutput{nil, out}
+	return builderOutput{err, out}
 }
 
 func reverse(in []int) {
