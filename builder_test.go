@@ -20,6 +20,18 @@ type deployment struct {
 	KinesisArn string
 }
 
+func TestCheckField(t *testing.T) {
+	ctxt := context.Background()
+	kinesisResource := MakeResource("mykin", "kinesis", nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+
+	if checkField(kinesisResource, "Arn") != nil {
+		t.Fatal("Arn field exists in kinesisResource")
+	}
+	if checkField(kinesisResource, "Bad") == nil {
+		t.Fatal("Bad field does not exist in kinesisResource")
+	}
+}
+
 func TestCopyValue(t *testing.T) {
 	WithLogger(t.Log)
 	ctxt := context.Background()

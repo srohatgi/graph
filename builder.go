@@ -31,6 +31,7 @@ package graph
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 )
@@ -98,6 +99,49 @@ func Sync(resources []Resource, toDelete bool) error {
 	}
 
 	return createSync(resources, g)
+}
+
+func check(resources []Resource) error {
+	cache := map[string]Resource{}
+
+	for _, r := range resources {
+		cache[r.Name()] = r
+	}
+
+	for n, r := range cache {
+		if reflect.ValueOf(r).Kind() != reflect.Ptr {
+			return fmt.Errorf("expected %s Resource to be implemented with a pointer to struct", n)
+		}
+
+		if reflect.ValueOf(r).Elem().Kind() != reflect.Struct {
+			return fmt.Errorf("expected %s Resource to be implemented using a pointer to struct", n)
+		}
+
+		// validate each dependency
+		for _, dep := range r.Dependencies() {
+			if err := checkField(r, dep.ToFieldName); err != nil {
+				return err
+			}
+			if err := checkField(cache[dep.FromResourceName], dep.FromResourceName); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkField(r Resource, field string) error {
+	if reflect.ValueOf(r).Elem().Type().Name() == "protoBuilder" {
+		if !reflect.ValueOf(r).Elem().FieldByName("UDef").Elem().Elem().FieldByName(field).IsValid() {
+			return fmt.Errorf("in %s embedded Resource did not find field %s", r.Name(), field)
+		}
+	} else {
+		if !reflect.ValueOf(r).Elem().FieldByName(field).IsValid() {
+			return fmt.Errorf("in %s Resource did not find field %s", r.Name(), field)
+		}
+	}
+	return nil
 }
 
 func copyValue(to Resource, toField string, from Resource, fromField string) {
