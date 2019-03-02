@@ -8,7 +8,7 @@ import (
 
 type kinesis struct {
 	ctxt context.Context
-	Arn  interface{}
+	Arn  string
 }
 
 type dynamo struct {
@@ -17,7 +17,30 @@ type dynamo struct {
 
 type deployment struct {
 	ctxt       context.Context
-	KinesisArn interface{}
+	KinesisArn string
+}
+
+func TestCopyValue(t *testing.T) {
+	WithLogger(t.Log)
+	ctxt := context.Background()
+
+	arn := "hello123"
+
+	kinesisResource := MakeResource("mykin", "kinesis", nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", "deployment", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	copyValue(deploymentResource, "KinesisArn", kinesisResource, "Arn")
+
+	out, err := deploymentResource.Update()
+
+	if err != nil {
+		t.Fatalf("error calling Update! err = %v", err)
+	}
+
+	if out != arn {
+		t.Fatalf("expected arn to match!")
+	}
+
 }
 
 func TestSync(t *testing.T) {

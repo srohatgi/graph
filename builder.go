@@ -100,14 +100,18 @@ func Sync(resources []Resource, toDelete bool) error {
 	return createSync(resources, g)
 }
 
-func getProperty(r Resource, name string) interface{} {
-	s := reflect.ValueOf(r)
-	logger("type of r", reflect.TypeOf(r), "value of r", s)
-	return nil
-}
-
-func setProperty(r Resource, name string, value interface{}) {
-
+func copyValue(to Resource, toField string, from Resource, fromField string) {
+	var fromValue reflect.Value
+	if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
+		fromValue = reflect.ValueOf(from).Elem().FieldByName("UDef").Elem().Elem().FieldByName(fromField)
+	} else {
+		fromValue = reflect.ValueOf(from).Elem().FieldByName(fromField)
+	}
+	if reflect.ValueOf(to).Elem().Type().Name() == "protoBuilder" {
+		reflect.ValueOf(to).Elem().FieldByName("UDef").Elem().Elem().FieldByName(toField).Set(fromValue)
+	} else {
+		reflect.ValueOf(to).Elem().FieldByName(toField).Set(fromValue)
+	}
 }
 
 func createSync(resources []Resource, g *graph) error {
@@ -190,8 +194,7 @@ func execute(r Resource, cache []Resource) builderOutput {
 	for _, dep := range r.Dependencies() {
 		for _, from := range cache {
 			if from.Name() == dep.FromResourceName {
-				prop := getProperty(from, dep.FieldName)
-				setProperty(r, dep.ToFieldName, prop)
+				copyValue(r, dep.ToFieldName, from, dep.FieldName)
 			}
 		}
 	}
