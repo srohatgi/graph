@@ -58,8 +58,8 @@ type Builder interface {
 }
 
 type builderOutput struct {
-	result error
 	out    []Property
+	result error
 }
 
 type protoBuilder struct {
@@ -83,7 +83,7 @@ func MakeBuilder(r *Resource, uDef interface{}, updFn func(interface{}, []Proper
 // maps the Resource slice to a Builder slice (using the Factory instance), and
 // then executes appropriate Builder interface methods. When a subset of resources
 // can be updated or created in parallel, the method attempts to do it.
-func Sync(resources []*Resource, toDelete bool, factory Factory) error {
+func Sync(resources []*Resource, toDelete bool, factory Factory) (map[string][]Property, error) {
 	g := buildGraph(resources)
 
 	logger("starting sync")
@@ -93,19 +93,19 @@ func Sync(resources []*Resource, toDelete bool, factory Factory) error {
 	for _, r := range resources {
 		b := factory.Create(r)
 		if b == nil {
-			return fmt.Errorf("unable to create builder for resource: %v", *r)
+			return nil, fmt.Errorf("unable to create builder for resource: %v", *r)
 		}
 		builders = append(builders, factory.Create(r))
 	}
 
 	if toDelete {
-		return deleteSync(builders, g)
+		return nil, deleteSync(builders, g)
 	}
 
 	return createSync(builders, g)
 }
 
-func createSync(builders []Builder, g *graph) error {
+func createSync(builders []Builder, g *graph) (map[string][]Property, error) {
 	ordered := sort(g)
 
 	var err error
@@ -178,7 +178,9 @@ func createSync(builders []Builder, g *graph) error {
 		err = errors.New("max attempts at computing resources exhausted, giving up")
 	}
 
-	return err
+	logger("buildCache", buildCache)
+
+	return buildCache, err
 }
 
 func execute(b Builder, cache map[string][]Property) builderOutput {
@@ -190,9 +192,9 @@ func execute(b Builder, cache map[string][]Property) builderOutput {
 
 	out, err := b.Update(in)
 	if err != nil {
-		return builderOutput{err, nil}
+		return builderOutput{nil, err}
 	}
-	return builderOutput{nil, out}
+	return builderOutput{out, nil}
 }
 
 func reverse(in []int) {

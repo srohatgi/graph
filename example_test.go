@@ -61,7 +61,7 @@ func Example_usage() {
 		DependsOn: []string{mykin},
 	}}
 
-	err := graph.Sync(resources, false, factory)
+	_, err := graph.Sync(resources, false, factory)
 	if err != nil {
 		fmt.Printf("unable to sync resources, error = %v\n", err)
 	}

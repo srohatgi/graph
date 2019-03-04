@@ -2,8 +2,12 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"testing"
+)
+
+const (
+	arnProperty = "ARN"
+	streamName  = "hello123"
 )
 
 type factory struct {
@@ -16,9 +20,11 @@ type kinesis struct {
 	bag  interface{}
 }
 
-func (k *kinesis) Get() *Resource                           { return k.Resource }
-func (k *kinesis) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *kinesis) Delete() error                            { return nil }
+func (k *kinesis) Get() *Resource { return k.Resource }
+func (k *kinesis) Update(in []Property) ([]Property, error) {
+	return []Property{{arnProperty, streamName}}, nil
+}
+func (k *kinesis) Delete() error { return nil }
 
 type dynamo struct {
 	*Resource
@@ -69,11 +75,14 @@ func TestSync(t *testing.T) {
 
 	WithLogger(t.Log)
 
-	err := Sync(resources, false, f)
+	status, err := Sync(resources, false, f)
 
 	if err != nil {
-		fmt.Print(err)
 		t.Fatalf("unable to sync %v", err)
+	}
+
+	if status[mykin][0].Value != streamName {
+		t.Fatal("kinesis stream name not sent out")
 	}
 
 }
