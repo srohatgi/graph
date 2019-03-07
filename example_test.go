@@ -62,7 +62,9 @@ func Example_usage() {
 		fmt.Printf("unable to sync resources, error = %v\n", err)
 	}
 
-	fmt.Printf("status = %v\n", status)
+	fmt.Printf("deployment status = %s\n", status["mydep1"])
+	// Output:
+	// deployment status = hello123
 }
 
 // AWS Kinesis resource definition
@@ -117,8 +119,7 @@ func (k *Deployment) Dependencies() []graph.Dependency {
 }
 func (k *Deployment) Update() (string, error) {
 	// use KinesisArn
-	fmt.Printf("kinesis arn injected from kinesisBuilder is %s", k.KinesisArn)
-	return "", nil
+	return k.KinesisArn, nil
 }
 func (k *Deployment) Delete() error {
 	return nil
