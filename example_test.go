@@ -32,9 +32,27 @@ type factory struct {
 }
 
 func new(data string) (*factory, error) {
+	var err error
 	f := factory{}
 
-	err := yaml.Unmarshal([]byte(data), &f)
+	ms := yaml.MapSlice{}
+
+	err = yaml.Unmarshal([]byte(data), &ms)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("ms=%v\n", ms)
+
+	for _, item := range ms {
+		payload, err := yaml.Marshal(item.Value)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("%s = \n%s\n", item.Key, payload)
+
+	}
+
+	err = yaml.Unmarshal([]byte(data), &f)
 	if err != nil {
 		return nil, err
 	}
