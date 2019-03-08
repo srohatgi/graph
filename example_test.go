@@ -1,41 +1,34 @@
 package graph_test
 
 import (
-	"context"
 	"fmt"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/srohatgi/graph"
 )
 
-// MyFactory keeps a context object
-type MyFactory struct {
-	ctxt          context.Context
-	kinesisCustom *myUserDefinedType
-}
+const data = `
+kinesis:
+- resourcename: mykin
+  streamname: myEventStream
+deployment:
+- resourcename: mydep
+  resourcedependencies:
+  - fromresource: mykin
+    fromfield: Arn
+    tofield: KinesisArn
+dynamo:
+- resourcename: mydyn
+  tablename: myDynamoTable
+`
 
-// Create satisfies the graph.Factory interface
-func (f *MyFactory) Create(resName, resType string, dependencies []graph.Dependency) graph.Resource {
-	switch resType {
-	case "kinesis":
-		// a Builder may be injected with any user defined types
-		// here we are passing a custom myUserDefinedType struct
-		updFn := func(u interface{}) (string, error) {
-			// use the u.streamName to construct your kinesis stream
-			myks := u.(*myUserDefinedType)
-			myks.Arn = "hello123"
-			return "", nil
-		}
-		delFn := func(d interface{}) error {
-			// use the d.streamName to delete the stream
-			return nil
-		}
-		return graph.MakeResource(resName, resType, dependencies, f.kinesisCustom, updFn, delFn)
-	case "dynamo":
-		return &Dynamo{f.ctxt, resName, resType, dependencies}
-	case "deployment":
-		return &Deployment{ctxt: f.ctxt, resName: resName, resType: resType, dependencies: dependencies}
-	}
-	return nil
+const debugGraphLib = false
+
+type CRD struct {
+	Kinesis    []Kinesis
+	Deployment []Deployment
+	Dynamo     []Dynamo
 }
 
 /*
@@ -46,15 +39,31 @@ service that depends on both of the other resources being created
 properly.
 */
 func Example_usage() {
-	ctxt := context.Background()
-	factory := &MyFactory{ctxt, &myUserDefinedType{ctxt: ctxt, streamName: "myEventStream"}}
 
-	mykin := "mykin"
+	crd := CRD{}
 
-	resources := []graph.Resource{
-		factory.Create(mykin, "kinesis", nil),
-		factory.Create("mydyn", "dynamo", nil),
-		factory.Create("mydep1", "deployment", []graph.Dependency{{FromResource: mykin, FromField: "Arn", ToField: "KinesisArn"}}),
+	err := yaml.Unmarshal([]byte(data), &crd)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	resources := []graph.Resource{}
+	for _, k := range crd.Kinesis {
+		resources = append(resources, &k)
+	}
+	for _, d := range crd.Deployment {
+		resources = append(resources, &d)
+	}
+	for _, d := range crd.Dynamo {
+		resources = append(resources, &d)
+	}
+
+	myprint := func(in ...interface{}) {
+		fmt.Println(in...)
+	}
+
+	if debugGraphLib {
+		graph.WithLogger(myprint)
 	}
 
 	status, err := graph.Sync(resources, false)
@@ -62,65 +71,70 @@ func Example_usage() {
 		fmt.Printf("unable to sync resources, error = %v\n", err)
 	}
 
-	fmt.Printf("deployment status = %s\n", status["mydep1"])
+	fmt.Printf("deployment status = %s\n", status["mydep"])
 	// Output:
 	// deployment status = hello123
 }
 
 // AWS Kinesis resource definition
-type myUserDefinedType struct {
-	ctxt       context.Context
-	streamName string
-	Arn        string
+type Kinesis struct {
+	ResourceName         string
+	ResourceDependencies []graph.Dependency
+	StreamName           string
+	Arn                  string
+}
+
+func (kin *Kinesis) Name() string {
+	return kin.ResourceName
+}
+func (kin *Kinesis) Dependencies() []graph.Dependency {
+	return kin.ResourceDependencies
+}
+func (kin *Kinesis) Update() (string, error) {
+	kin.Arn = "hello123"
+	return "", nil
+}
+func (kin *Kinesis) Delete() error {
+	return nil
 }
 
 // AWS Dynamo DB resource definition
 type Dynamo struct {
-	ctxt         context.Context
-	resName      string
-	resType      string
-	dependencies []graph.Dependency
+	ResourceName         string
+	ResourceDependencies []graph.Dependency
+	TableName            string
 }
 
-func (k *Dynamo) Name() string {
-	return k.resName
+func (dyn *Dynamo) Name() string {
+	return dyn.ResourceName
 }
-func (k *Dynamo) Type() string {
-	return k.resType
+func (dyn *Dynamo) Dependencies() []graph.Dependency {
+	return dyn.ResourceDependencies
 }
-func (k *Dynamo) Dependencies() []graph.Dependency {
-	return k.dependencies
-}
-func (k *Dynamo) Update() (string, error) {
-
+func (dyn *Dynamo) Update() (string, error) {
 	return "", nil
 }
-func (k *Dynamo) Delete() error {
+func (dyn *Dynamo) Delete() error {
 	return nil
 }
 
 // Kubernetes Deployment resource definition
 type Deployment struct {
-	ctxt         context.Context
-	resName      string
-	resType      string
-	dependencies []graph.Dependency
-	KinesisArn   string
+	ResourceName         string
+	ResourceDependencies []graph.Dependency
+	KinesisArn           string
 }
 
-func (k *Deployment) Name() string {
-	return k.resName
+func (dep *Deployment) Name() string {
+	return dep.ResourceName
 }
-func (k *Deployment) Type() string {
-	return k.resType
+func (dep *Deployment) Dependencies() []graph.Dependency {
+	return dep.ResourceDependencies
 }
-func (k *Deployment) Dependencies() []graph.Dependency {
-	return k.dependencies
-}
-func (k *Deployment) Update() (string, error) {
+func (dep *Deployment) Update() (string, error) {
 	// use KinesisArn
-	return k.KinesisArn, nil
+	return dep.KinesisArn, nil
 }
-func (k *Deployment) Delete() error {
+func (dep *Deployment) Delete() error {
 	return nil
 }

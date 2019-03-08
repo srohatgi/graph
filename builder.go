@@ -58,9 +58,7 @@ type Resource interface {
 	// Get retrieves underlying Resource instance name. This allows creation
 	// of multiple resources of the same Type.
 	Name() string
-	// Get retrieves underlying Resource type.
-	Type() string
-	// Dependencies fetches a given Builder's dependency list.
+	// Dependencies fetches a given Resource's dependency list.
 	Dependencies() []Dependency
 	// Delete the Resource.
 	Delete() error
