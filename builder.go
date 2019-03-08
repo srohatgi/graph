@@ -55,21 +55,46 @@ type Dependency struct {
 // Resource is an abstract declarative definition for compute, storage and network services.
 // Examples: AWS Kinesis, AWS CloudFormation, Kubernetes Deployment etc.
 type Resource interface {
-	// Get retrieves underlying Resource instance name. This allows creation
-	// of multiple resources of the same Type.
-	ResourceName() string
-	// Dependencies fetches a given Resource's dependency list.
-	ResourceDependencies() []Dependency
-	// Delete the Resource.
-	Delete() error
-	// Update or if not existing, create the Resource.
-	Update() (string, error)
+	Depender
+	Builder
 }
 
 type builderOutput struct {
 	status string
 	result error
 }
+
+// Depender captures dependencies between resources
+type Depender interface {
+	// Get retrieves underlying Resource instance name. This allows creation
+	// of multiple resources of the same Type.
+	ResourceName() string
+	// Dependencies fetches a given Resource's dependency list.
+	ResourceDependencies() []Dependency
+}
+
+// Builder allows resources to be created/ deleted
+type Builder interface {
+	// Delete the Resource.
+	Delete() error
+	// Update or if not existing, create the Resource.
+	Update() (string, error)
+}
+
+type protoBuilder2 struct {
+	D Depender
+	B Builder
+}
+
+// MakeResource2 is
+func MakeResource2(d Depender, b Builder) Resource {
+	return &protoBuilder2{d, b}
+}
+
+func (p *protoBuilder2) ResourceName() string               { return p.D.ResourceName() }
+func (p *protoBuilder2) Update() (string, error)            { return p.B.Update() }
+func (p *protoBuilder2) Delete() error                      { return p.B.Delete() }
+func (p *protoBuilder2) ResourceDependencies() []Dependency { return p.D.ResourceDependencies() }
 
 type protoBuilder struct {
 	Name         string
@@ -149,6 +174,11 @@ func checkField(r Resource, field string) error {
 		if !reflect.ValueOf(r).Elem().FieldByName("UDef").Elem().Elem().FieldByName(field).IsValid() {
 			return fmt.Errorf("in %s embedded Resource did not find field %s", r.ResourceName(), field)
 		}
+	} else if reflect.ValueOf(r).Elem().Type().Name() == "protoBuilder2" {
+		builder := reflect.ValueOf(r).Elem().FieldByName("B")
+		if !reflect.ValueOf(builder).Elem().Elem().FieldByName(field).IsValid() {
+			return fmt.Errorf("in %s embedded Resource did not find field %s", r.ResourceName(), field)
+		}
 	} else {
 		if !reflect.ValueOf(r).Elem().FieldByName(field).IsValid() {
 			return fmt.Errorf("in %s Resource did not find field %s", r.ResourceName(), field)
@@ -165,11 +195,18 @@ func copyValue(to Resource, toField string, from Resource, fromField string) {
 	var fromValue reflect.Value
 	if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
 		fromValue = reflect.ValueOf(from).Elem().FieldByName("UDef").Elem().Elem().FieldByName(fromField)
+	} else if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
+		builder := reflect.ValueOf(from).Elem().FieldByName("B")
+		fromValue = reflect.ValueOf(builder).Elem().Elem().FieldByName(fromField)
 	} else {
 		fromValue = reflect.ValueOf(from).Elem().FieldByName(fromField)
 	}
+
 	if reflect.ValueOf(to).Elem().Type().Name() == "protoBuilder" {
 		reflect.ValueOf(to).Elem().FieldByName("UDef").Elem().Elem().FieldByName(toField).Set(fromValue)
+	} else if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
+		builder := reflect.ValueOf(to).Elem().FieldByName("B")
+		reflect.ValueOf(builder).Elem().Elem().FieldByName(toField).Set(fromValue)
 	} else {
 		reflect.ValueOf(to).Elem().FieldByName(toField).Set(fromValue)
 	}
