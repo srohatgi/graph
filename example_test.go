@@ -8,7 +8,7 @@ import (
 	"github.com/srohatgi/graph"
 )
 
-const data = `
+const spec = `
 kinesis:
 - name: mykin
   streamname: myEventStream
@@ -25,10 +25,36 @@ dynamo:
 
 const debugGraphLib = false
 
-type CRD struct {
+type factory struct {
 	Kinesis    []Kinesis
 	Deployment []Deployment
 	Dynamo     []Dynamo
+}
+
+func new(data string) (*factory, error) {
+	f := factory{}
+
+	err := yaml.Unmarshal([]byte(data), &f)
+	if err != nil {
+		return nil, err
+	}
+
+	return &f, nil
+}
+
+func (f *factory) build() []graph.Resource {
+	resources := []graph.Resource{}
+	for _, k := range f.Kinesis {
+		resources = append(resources, &k)
+	}
+	for _, d := range f.Dynamo {
+		resources = append(resources, &d)
+	}
+	for _, d := range f.Deployment {
+		resources = append(resources, &d)
+	}
+
+	return resources
 }
 
 /*
@@ -40,29 +66,18 @@ properly.
 */
 func Example_usage() {
 
-	crd := CRD{}
-
-	err := yaml.Unmarshal([]byte(data), &crd)
+	f, err := new(spec)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("error creating factory: %v\n", err)
 	}
 
-	resources := []graph.Resource{}
-	for _, k := range crd.Kinesis {
-		resources = append(resources, &k)
-	}
-	for _, d := range crd.Deployment {
-		resources = append(resources, &d)
-	}
-	for _, d := range crd.Dynamo {
-		resources = append(resources, &d)
-	}
-
-	myprint := func(in ...interface{}) {
-		fmt.Println(in...)
-	}
+	resources := f.build()
 
 	if debugGraphLib {
+		myprint := func(in ...interface{}) {
+			fmt.Println(in...)
+		}
+
 		graph.WithLogger(myprint)
 	}
 
@@ -73,7 +88,7 @@ func Example_usage() {
 
 	fmt.Printf("deployment status = %s\n", status["mydep"])
 	// Output:
-	// deployment status = hello123
+	// deployment status = successfully reading hello123
 }
 
 // AWS Kinesis resource definition
@@ -133,7 +148,7 @@ func (dep *Deployment) ResourceDependencies() []graph.Dependency {
 }
 func (dep *Deployment) Update() (string, error) {
 	// use KinesisArn
-	return dep.KinesisArn, nil
+	return "successfully reading " + dep.KinesisArn, nil
 }
 func (dep *Deployment) Delete() error {
 	return nil
