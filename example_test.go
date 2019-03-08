@@ -10,16 +10,16 @@ import (
 
 const data = `
 kinesis:
-- resourcename: mykin
+- name: mykin
   streamname: myEventStream
 deployment:
-- resourcename: mydep
-  resourcedependencies:
+- name: mydep
+  dependencies:
   - fromresource: mykin
     fromfield: Arn
     tofield: KinesisArn
 dynamo:
-- resourcename: mydyn
+- name: mydyn
   tablename: myDynamoTable
 `
 
@@ -78,17 +78,17 @@ func Example_usage() {
 
 // AWS Kinesis resource definition
 type Kinesis struct {
-	ResourceName         string
-	ResourceDependencies []graph.Dependency
-	StreamName           string
-	Arn                  string
+	Name         string
+	Dependencies []graph.Dependency
+	StreamName   string
+	Arn          string
 }
 
-func (kin *Kinesis) Name() string {
-	return kin.ResourceName
+func (kin *Kinesis) ResourceName() string {
+	return kin.Name
 }
-func (kin *Kinesis) Dependencies() []graph.Dependency {
-	return kin.ResourceDependencies
+func (kin *Kinesis) ResourceDependencies() []graph.Dependency {
+	return kin.Dependencies
 }
 func (kin *Kinesis) Update() (string, error) {
 	kin.Arn = "hello123"
@@ -100,16 +100,16 @@ func (kin *Kinesis) Delete() error {
 
 // AWS Dynamo DB resource definition
 type Dynamo struct {
-	ResourceName         string
-	ResourceDependencies []graph.Dependency
-	TableName            string
+	Name         string
+	Dependencies []graph.Dependency
+	TableName    string
 }
 
-func (dyn *Dynamo) Name() string {
-	return dyn.ResourceName
+func (dyn *Dynamo) ResourceName() string {
+	return dyn.Name
 }
-func (dyn *Dynamo) Dependencies() []graph.Dependency {
-	return dyn.ResourceDependencies
+func (dyn *Dynamo) ResourceDependencies() []graph.Dependency {
+	return dyn.Dependencies
 }
 func (dyn *Dynamo) Update() (string, error) {
 	return "", nil
@@ -120,16 +120,16 @@ func (dyn *Dynamo) Delete() error {
 
 // Kubernetes Deployment resource definition
 type Deployment struct {
-	ResourceName         string
-	ResourceDependencies []graph.Dependency
-	KinesisArn           string
+	Name         string
+	Dependencies []graph.Dependency
+	KinesisArn   string
 }
 
-func (dep *Deployment) Name() string {
-	return dep.ResourceName
+func (dep *Deployment) ResourceName() string {
+	return dep.Name
 }
-func (dep *Deployment) Dependencies() []graph.Dependency {
-	return dep.ResourceDependencies
+func (dep *Deployment) ResourceDependencies() []graph.Dependency {
+	return dep.Dependencies
 }
 func (dep *Deployment) Update() (string, error) {
 	// use KinesisArn

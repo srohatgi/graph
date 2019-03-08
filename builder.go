@@ -57,9 +57,9 @@ type Dependency struct {
 type Resource interface {
 	// Get retrieves underlying Resource instance name. This allows creation
 	// of multiple resources of the same Type.
-	Name() string
+	ResourceName() string
 	// Dependencies fetches a given Resource's dependency list.
-	Dependencies() []Dependency
+	ResourceDependencies() []Dependency
 	// Delete the Resource.
 	Delete() error
 	// Update or if not existing, create the Resource.
@@ -72,24 +72,22 @@ type builderOutput struct {
 }
 
 type protoBuilder struct {
-	ResourceName         string
-	ResourceType         string
-	ResourceDependencies []Dependency
-	UDef                 interface{}
-	UpdFn                func(interface{}) (string, error)
-	DelFn                func(interface{}) error
+	Name         string
+	Dependencies []Dependency
+	UDef         interface{}
+	UpdFn        func(interface{}) (string, error)
+	DelFn        func(interface{}) error
 }
 
-func (p *protoBuilder) Name() string               { return p.ResourceName }
-func (p *protoBuilder) Type() string               { return p.ResourceType }
-func (p *protoBuilder) Update() (string, error)    { return p.UpdFn(p.UDef) }
-func (p *protoBuilder) Delete() error              { return p.DelFn(p.DelFn) }
-func (p *protoBuilder) Dependencies() []Dependency { return p.ResourceDependencies }
+func (p *protoBuilder) ResourceName() string               { return p.Name }
+func (p *protoBuilder) Update() (string, error)            { return p.UpdFn(p.UDef) }
+func (p *protoBuilder) Delete() error                      { return p.DelFn(p.DelFn) }
+func (p *protoBuilder) ResourceDependencies() []Dependency { return p.Dependencies }
 
 // MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
-func MakeResource(name, resourceType string, dependencies []Dependency, uDef interface{}, updFn func(interface{}) (string, error), delFn func(interface{}) error) Resource {
-	return &protoBuilder{name, resourceType, dependencies, uDef, updFn, delFn}
+func MakeResource(name string, dependencies []Dependency, uDef interface{}, updFn func(interface{}) (string, error), delFn func(interface{}) error) Resource {
+	return &protoBuilder{name, dependencies, uDef, updFn, delFn}
 }
 
 // Sync method is used to enforce the programming model. Internally, the method
@@ -113,7 +111,7 @@ func check(resources []Resource) error {
 	cache := map[string]Resource{}
 
 	for _, r := range resources {
-		cache[r.Name()] = r
+		cache[r.ResourceName()] = r
 	}
 
 	for n, r := range cache {
@@ -126,9 +124,9 @@ func check(resources []Resource) error {
 		}
 
 		// validate each dependency
-		for _, dep := range r.Dependencies() {
+		for _, dep := range r.ResourceDependencies() {
 			if len(dep.ToField) == 0 && len(dep.FromField) > 0 || len(dep.ToField) > 0 && len(dep.FromField) == 0 {
-				return fmt.Errorf("Resource %s incorrect specification of dependency on %s, fix FromField, ToField", r.Name(), dep.FromResource)
+				return fmt.Errorf("Resource %s incorrect specification of dependency on %s, fix FromField, ToField", r.ResourceName(), dep.FromResource)
 			}
 			if err := checkField(r, dep.ToField); err != nil {
 				return err
@@ -149,11 +147,11 @@ func checkField(r Resource, field string) error {
 
 	if reflect.ValueOf(r).Elem().Type().Name() == "protoBuilder" {
 		if !reflect.ValueOf(r).Elem().FieldByName("UDef").Elem().Elem().FieldByName(field).IsValid() {
-			return fmt.Errorf("in %s embedded Resource did not find field %s", r.Name(), field)
+			return fmt.Errorf("in %s embedded Resource did not find field %s", r.ResourceName(), field)
 		}
 	} else {
 		if !reflect.ValueOf(r).Elem().FieldByName(field).IsValid() {
-			return fmt.Errorf("in %s Resource did not find field %s", r.Name(), field)
+			return fmt.Errorf("in %s Resource did not find field %s", r.ResourceName(), field)
 		}
 	}
 	return nil
@@ -194,13 +192,13 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 
 			res := resources[i]
 			// check if we've already executed
-			if _, alreadyExecuted := buildCache[res.Name()]; alreadyExecuted {
+			if _, alreadyExecuted := buildCache[res.ResourceName()]; alreadyExecuted {
 				logger("already executed", i)
 				continue
 			}
 
 			ready := true
-			for _, dep := range res.Dependencies() {
+			for _, dep := range res.ResourceDependencies() {
 				if _, found := buildCache[dep.FromResource]; !found {
 					// cannot proceed as this resource cannot be processed
 					ready = false
@@ -235,7 +233,7 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 			e := <-c
 
 			if len(e.status) > 0 {
-				status[resources[i].Name()] = e.status
+				status[resources[i].ResourceName()] = e.status
 			}
 
 			if e.result != nil {
@@ -244,7 +242,7 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 				continue
 			}
 
-			name := resources[i].Name()
+			name := resources[i].ResourceName()
 			buildCache[name] = resources[i]
 		}
 
@@ -260,7 +258,7 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 }
 
 func execute(r Resource, cache map[string]Resource) builderOutput {
-	for _, dep := range r.Dependencies() {
+	for _, dep := range r.ResourceDependencies() {
 		copyValue(r, dep.ToField, cache[dep.FromResource], dep.FromField)
 	}
 

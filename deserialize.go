@@ -5,12 +5,12 @@ func buildGraph(resources []Resource) *graph {
 	indexes := map[string]int{}
 
 	for i := range resources {
-		indexes[resources[i].Name()] = i
+		indexes[resources[i].ResourceName()] = i
 	}
 
 	for i := range resources {
 		parents[i] = map[int]bool{}
-		for _, dep := range resources[i].Dependencies() {
+		for _, dep := range resources[i].ResourceDependencies() {
 			parents[i][indexes[dep.FromResource]] = true
 		}
 	}
