@@ -84,7 +84,7 @@ func Example_usage() {
 
 	//fmt.Printf("factory: %v\n", f)
 
-	ctxt := context.Background()
+	ctxt := context.WithValue(context.Background(), graph.SyncBag, map[string]string{"namespace": "myns"})
 
 	status, err := graph.Sync(ctxt, resources, false)
 	if err != nil {
@@ -93,7 +93,7 @@ func Example_usage() {
 
 	fmt.Printf("deployment status = %s\n", status["mydep"])
 	// Output:
-	// deployment status = successfully reading hello123
+	// deployment status = successfully reading hello123 in myns
 }
 
 // AWS Kinesis resource definition
@@ -131,8 +131,12 @@ type Deployment struct {
 }
 
 func (dep *Deployment) Update(ctxt context.Context) (string, error) {
+	crd, ok := ctxt.Value(graph.SyncBag).(map[string]string)
+	if !ok {
+		return "", fmt.Errorf("unable to get crd info")
+	}
 	// use KinesisArn
-	return "successfully reading " + dep.KinesisArn, nil
+	return "successfully reading " + dep.KinesisArn + " in " + crd["namespace"], nil
 }
 func (dep *Deployment) Delete(ctxt context.Context) error {
 	return nil

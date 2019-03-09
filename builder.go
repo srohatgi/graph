@@ -42,6 +42,11 @@ import (
 	"sync"
 )
 
+type bag string
+
+// SyncBag allows for retrieving global context values from a context
+const SyncBag bag = "crd"
+
 // Depends is a convenience structure used for capturing resource dependencies.
 type Depends struct {
 	Name         string
