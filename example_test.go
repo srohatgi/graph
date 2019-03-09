@@ -27,9 +27,9 @@ dynamo:
 const debugGraphLib = false
 
 type factory struct {
-	Kinesis    []Kinesis
-	Deployment []Deployment
-	Dynamo     []Dynamo
+	Kinesis    []*Kinesis
+	Deployment []*Deployment
+	Dynamo     []*Dynamo
 }
 
 type Depends struct {
@@ -51,13 +51,13 @@ func new(data string) (*factory, error) {
 func (f *factory) build() []graph.Resource {
 	resources := []graph.Resource{}
 	for _, k := range f.Kinesis {
-		resources = append(resources, &k)
+		resources = append(resources, k)
 	}
 	for _, d := range f.Dynamo {
-		resources = append(resources, &d)
+		resources = append(resources, d)
 	}
 	for _, d := range f.Deployment {
-		resources = append(resources, &d)
+		resources = append(resources, d)
 	}
 
 	return resources
