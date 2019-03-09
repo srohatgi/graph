@@ -35,6 +35,7 @@
 package graph
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -81,21 +82,6 @@ type Builder interface {
 	Update() (string, error)
 }
 
-type protoBuilder2 struct {
-	D Depender
-	B Builder
-}
-
-// MakeResource2 is
-func MakeResource2(d Depender, b Builder) Resource {
-	return &protoBuilder2{d, b}
-}
-
-func (p *protoBuilder2) ResourceName() string               { return p.D.ResourceName() }
-func (p *protoBuilder2) Update() (string, error)            { return p.B.Update() }
-func (p *protoBuilder2) Delete() error                      { return p.B.Delete() }
-func (p *protoBuilder2) ResourceDependencies() []Dependency { return p.D.ResourceDependencies() }
-
 type protoBuilder struct {
 	Name         string
 	Dependencies []Dependency
@@ -119,7 +105,7 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 // maps the Resource slice to a Builder slice (using the Factory instance), and
 // then executes appropriate Builder interface methods. When a subset of resources
 // can be updated or created in parallel, the method attempts to do it.
-func Sync(resources []Resource, toDelete bool) (map[string]string, error) {
+func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
 	g := buildGraph(resources)
 
 	logger("starting sync")
@@ -174,11 +160,6 @@ func checkField(r Resource, field string) error {
 		if !reflect.ValueOf(r).Elem().FieldByName("UDef").Elem().Elem().FieldByName(field).IsValid() {
 			return fmt.Errorf("in %s embedded Resource did not find field %s", r.ResourceName(), field)
 		}
-	} else if reflect.ValueOf(r).Elem().Type().Name() == "protoBuilder2" {
-		builder := reflect.ValueOf(r).Elem().FieldByName("B")
-		if !reflect.ValueOf(builder).Elem().Elem().FieldByName(field).IsValid() {
-			return fmt.Errorf("in %s embedded Resource did not find field %s", r.ResourceName(), field)
-		}
 	} else {
 		if !reflect.ValueOf(r).Elem().FieldByName(field).IsValid() {
 			return fmt.Errorf("in %s Resource did not find field %s", r.ResourceName(), field)
@@ -195,18 +176,12 @@ func copyValue(to Resource, toField string, from Resource, fromField string) {
 	var fromValue reflect.Value
 	if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
 		fromValue = reflect.ValueOf(from).Elem().FieldByName("UDef").Elem().Elem().FieldByName(fromField)
-	} else if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
-		builder := reflect.ValueOf(from).Elem().FieldByName("B")
-		fromValue = reflect.ValueOf(builder).Elem().Elem().FieldByName(fromField)
 	} else {
 		fromValue = reflect.ValueOf(from).Elem().FieldByName(fromField)
 	}
 
 	if reflect.ValueOf(to).Elem().Type().Name() == "protoBuilder" {
 		reflect.ValueOf(to).Elem().FieldByName("UDef").Elem().Elem().FieldByName(toField).Set(fromValue)
-	} else if reflect.ValueOf(from).Elem().Type().Name() == "protoBuilder" {
-		builder := reflect.ValueOf(to).Elem().FieldByName("B")
-		reflect.ValueOf(builder).Elem().Elem().FieldByName(toField).Set(fromValue)
 	} else {
 		reflect.ValueOf(to).Elem().FieldByName(toField).Set(fromValue)
 	}

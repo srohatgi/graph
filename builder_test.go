@@ -69,7 +69,7 @@ func TestSync(t *testing.T) {
 
 	WithLogger(t.Log)
 
-	status, err := Sync(resources, false)
+	status, err := Sync(ctxt, resources, false)
 
 	if err != nil {
 		t.Fatalf("unable to sync %v", err)

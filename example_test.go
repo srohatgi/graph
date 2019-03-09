@@ -1,6 +1,7 @@
 package graph_test
 
 import (
+	"context"
 	"fmt"
 
 	yaml "gopkg.in/yaml.v2"
@@ -31,7 +32,7 @@ type factory struct {
 	Dynamo     []Dynamo
 }
 
-type depends struct {
+type Depends struct {
 	Name         string
 	Dependencies []graph.Dependency
 }
@@ -39,52 +40,6 @@ type depends struct {
 func new(data string) (*factory, error) {
 	var err error
 	f := factory{}
-	f2 := factory{}
-	deps := []depends{}
-
-	ms := yaml.MapSlice{}
-
-	err = yaml.Unmarshal([]byte(data), &ms)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("ms=%v\n", ms)
-
-	for _, item := range ms {
-		payload, err := yaml.Marshal(item.Value)
-		if err != nil {
-			return nil, err
-		}
-		fmt.Printf("%s = \n%s\n", item.Key, payload)
-
-		var out interface{}
-		switch item.Key {
-		case "kinesis":
-			out = &f2.Kinesis
-		case "dynamo":
-			out = &f2.Dynamo
-		case "deployment":
-			out = &f2.Deployment
-		}
-
-		err = yaml.Unmarshal([]byte(payload), out)
-		if err != nil {
-			fmt.Printf("error while unmarshalling kinesis resources: %v\n", err)
-			return nil, err
-		}
-
-		minideps := []depends{}
-		err = yaml.Unmarshal([]byte(payload), &minideps)
-		if err != nil {
-			fmt.Printf("unable to parse out dependencies, error = %v", err)
-			return nil, err
-		}
-
-		deps = append(deps, minideps...)
-	}
-
-	fmt.Printf("f2=%v\ndeps=%v\n", f2, deps)
-
 	err = yaml.Unmarshal([]byte(data), &f)
 	if err != nil {
 		return nil, err
@@ -132,7 +87,11 @@ func Example_usage() {
 		graph.WithLogger(myprint)
 	}
 
-	status, err := graph.Sync(resources, false)
+	//fmt.Printf("factory: %v\n", f)
+
+	ctxt := context.Background()
+
+	status, err := graph.Sync(ctxt, resources, false)
 	if err != nil {
 		fmt.Printf("unable to sync resources, error = %v\n", err)
 	}
