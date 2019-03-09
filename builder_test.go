@@ -42,7 +42,7 @@ func TestCopyValue(t *testing.T) {
 
 	copyValue(deploymentResource, "KinesisArn", kinesisResource, "Arn")
 
-	out, err := deploymentResource.Update()
+	out, err := deploymentResource.Update(context.Background())
 
 	if err != nil {
 		t.Fatalf("error calling Update! err = %v", err)

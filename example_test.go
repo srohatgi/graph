@@ -115,11 +115,11 @@ func (kin *Kinesis) ResourceName() string {
 func (kin *Kinesis) ResourceDependencies() []graph.Dependency {
 	return kin.Dependencies
 }
-func (kin *Kinesis) Update() (string, error) {
+func (kin *Kinesis) Update(ctxt context.Context) (string, error) {
 	kin.Arn = "hello123"
 	return "", nil
 }
-func (kin *Kinesis) Delete() error {
+func (kin *Kinesis) Delete(ctxt context.Context) error {
 	return nil
 }
 
@@ -136,10 +136,10 @@ func (dyn *Dynamo) ResourceName() string {
 func (dyn *Dynamo) ResourceDependencies() []graph.Dependency {
 	return dyn.Dependencies
 }
-func (dyn *Dynamo) Update() (string, error) {
+func (dyn *Dynamo) Update(ctxt context.Context) (string, error) {
 	return "", nil
 }
-func (dyn *Dynamo) Delete() error {
+func (dyn *Dynamo) Delete(ctxt context.Context) error {
 	return nil
 }
 
@@ -156,10 +156,10 @@ func (dep *Deployment) ResourceName() string {
 func (dep *Deployment) ResourceDependencies() []graph.Dependency {
 	return dep.Dependencies
 }
-func (dep *Deployment) Update() (string, error) {
+func (dep *Deployment) Update(ctxt context.Context) (string, error) {
 	// use KinesisArn
 	return "successfully reading " + dep.KinesisArn, nil
 }
-func (dep *Deployment) Delete() error {
+func (dep *Deployment) Delete(ctxt context.Context) error {
 	return nil
 }

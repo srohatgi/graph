@@ -77,9 +77,9 @@ type Depender interface {
 // Builder allows resources to be created/ deleted
 type Builder interface {
 	// Delete the Resource.
-	Delete() error
+	Delete(ctxt context.Context) error
 	// Update or if not existing, create the Resource.
-	Update() (string, error)
+	Update(ctxt context.Context) (string, error)
 }
 
 type protoBuilder struct {
@@ -90,10 +90,10 @@ type protoBuilder struct {
 	DelFn        func(interface{}) error
 }
 
-func (p *protoBuilder) ResourceName() string               { return p.Name }
-func (p *protoBuilder) Update() (string, error)            { return p.UpdFn(p.UDef) }
-func (p *protoBuilder) Delete() error                      { return p.DelFn(p.DelFn) }
-func (p *protoBuilder) ResourceDependencies() []Dependency { return p.Dependencies }
+func (p *protoBuilder) ResourceName() string                        { return p.Name }
+func (p *protoBuilder) Update(ctxt context.Context) (string, error) { return p.UpdFn(p.UDef) }
+func (p *protoBuilder) Delete(ctxt context.Context) error           { return p.DelFn(p.DelFn) }
+func (p *protoBuilder) ResourceDependencies() []Dependency          { return p.Dependencies }
 
 // MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
@@ -111,10 +111,10 @@ func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string
 	logger("starting sync")
 
 	if toDelete {
-		return nil, deleteSync(resources, g)
+		return nil, deleteSync(ctxt, resources, g)
 	}
 
-	return createSync(resources, g)
+	return createSync(ctxt, resources, g)
 }
 
 // check that resources have correct dependencies
@@ -187,7 +187,7 @@ func copyValue(to Resource, toField string, from Resource, fromField string) {
 	}
 }
 
-func createSync(resources []Resource, g *graph) (map[string]string, error) {
+func createSync(ctxt context.Context, resources []Resource, g *graph) (map[string]string, error) {
 	ordered := sort(g)
 
 	var err error
@@ -234,7 +234,7 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 
 			go func(b Resource, c chan builderOutput) {
 				defer wg.Done()
-				c <- execute(b, buildCache)
+				c <- execute(ctxt, b, buildCache)
 			}(resources[i], output[i])
 		}
 
@@ -269,12 +269,12 @@ func createSync(resources []Resource, g *graph) (map[string]string, error) {
 	return status, err
 }
 
-func execute(r Resource, cache map[string]Resource) builderOutput {
+func execute(ctxt context.Context, r Resource, cache map[string]Resource) builderOutput {
 	for _, dep := range r.ResourceDependencies() {
 		copyValue(r, dep.ToField, cache[dep.FromResource], dep.FromField)
 	}
 
-	out, err := r.Update()
+	out, err := r.Update(ctxt)
 	return builderOutput{out, err}
 }
 
@@ -285,7 +285,7 @@ func reverse(in []int) {
 	}
 }
 
-func deleteSync(resources []Resource, g *graph) error {
+func deleteSync(ctxt context.Context, resources []Resource, g *graph) error {
 	order := sort(g)
 	reverse(order)
 
@@ -294,7 +294,7 @@ func deleteSync(resources []Resource, g *graph) error {
 	var err error
 
 	for _, i := range order {
-		err = resources[i].Delete()
+		err = resources[i].Delete(ctxt)
 		if err != nil {
 			break
 		}
