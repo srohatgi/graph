@@ -42,8 +42,13 @@ import (
 	"sync"
 )
 
-// Dependency captures inter Resource dependencies. Specifying FromField
-// and ToField enables copying over of value to current Resource.
+// Depends is a convenience structure used for capturing resource dependencies.
+type Depends struct {
+	Name         string
+	Dependencies []Dependency
+}
+
+// Dependency specifies a single dependency
 type Dependency struct {
 	// FromResource is another resource specified in the same slice.
 	FromResource string
@@ -51,6 +56,16 @@ type Dependency struct {
 	FromField string
 	// ToField is a public field in the current Resource's implementing struct.
 	ToField string
+}
+
+// ResourceName convenience function
+func (dep *Depends) ResourceName() string {
+	return dep.Name
+}
+
+// ResourceDependencies convenience function
+func (dep *Depends) ResourceDependencies() []Dependency {
+	return dep.Dependencies
 }
 
 // Resource is an abstract declarative definition for compute, storage and network services.

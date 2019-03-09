@@ -32,11 +32,6 @@ type factory struct {
 	Dynamo     []*Dynamo
 }
 
-type Depends struct {
-	Name         string
-	Dependencies []graph.Dependency
-}
-
 func new(data string) (*factory, error) {
 	var err error
 	f := factory{}
@@ -103,18 +98,11 @@ func Example_usage() {
 
 // AWS Kinesis resource definition
 type Kinesis struct {
-	Name         string
-	Dependencies []graph.Dependency
-	StreamName   string
-	Arn          string
+	graph.Depends `yaml:",inline"`
+	StreamName    string
+	Arn           string
 }
 
-func (kin *Kinesis) ResourceName() string {
-	return kin.Name
-}
-func (kin *Kinesis) ResourceDependencies() []graph.Dependency {
-	return kin.Dependencies
-}
 func (kin *Kinesis) Update(ctxt context.Context) (string, error) {
 	kin.Arn = "hello123"
 	return "", nil
@@ -125,17 +113,10 @@ func (kin *Kinesis) Delete(ctxt context.Context) error {
 
 // AWS Dynamo DB resource definition
 type Dynamo struct {
-	Name         string
-	Dependencies []graph.Dependency
-	TableName    string
+	graph.Depends `yaml:",inline"`
+	TableName     string
 }
 
-func (dyn *Dynamo) ResourceName() string {
-	return dyn.Name
-}
-func (dyn *Dynamo) ResourceDependencies() []graph.Dependency {
-	return dyn.Dependencies
-}
 func (dyn *Dynamo) Update(ctxt context.Context) (string, error) {
 	return "", nil
 }
@@ -145,17 +126,10 @@ func (dyn *Dynamo) Delete(ctxt context.Context) error {
 
 // Kubernetes Deployment resource definition
 type Deployment struct {
-	Name         string
-	Dependencies []graph.Dependency
-	KinesisArn   string
+	graph.Depends `yaml:",inline"`
+	KinesisArn    string
 }
 
-func (dep *Deployment) ResourceName() string {
-	return dep.Name
-}
-func (dep *Deployment) ResourceDependencies() []graph.Dependency {
-	return dep.Dependencies
-}
 func (dep *Deployment) Update(ctxt context.Context) (string, error) {
 	// use KinesisArn
 	return "successfully reading " + dep.KinesisArn, nil
