@@ -270,7 +270,7 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 
 			if e.result != nil {
 				logger("error executing resource", "resource", resources[i], "error", e)
-				errs[i] = e.result
+				errs[resources[i].ResourceName()] = e.result
 				continue
 			}
 

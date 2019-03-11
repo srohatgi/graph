@@ -19,8 +19,8 @@ func TestErrorMap_NilIsNil(t *testing.T) {
 func TestErrorMap_Collection(t *testing.T) {
 	f := func() error {
 		em := ErrorMap{}
-		em[0] = errors.New("hello err 0")
-		em[1] = errors.New("hello err 1")
+		em["0"] = errors.New("hello err 0")
+		em["1"] = errors.New("hello err 1")
 		return em.Get()
 	}
 
@@ -41,8 +41,8 @@ func TestErrorMap_Collection(t *testing.T) {
 	}
 
 	em := *emPtr
-	for i := 0; i < 2; i++ {
-		if _, ok := em[i]; !ok {
+	for i, name := range []string{"0", "1"} {
+		if _, ok := em[name]; !ok {
 			t.Fatalf("expected error to be present for index %d", i)
 		}
 	}
