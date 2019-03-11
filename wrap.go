@@ -4,7 +4,7 @@ import "strings"
 
 // ErrorMap is a collection of errors. Integer offsets in the map are assumed to be
 // meaningful in the context of the function signature.
-type ErrorMap map[int]error
+type ErrorMap map[string]error
 
 // Get is required to work around the issue of interface having a concrete underlying
 // value nil is not a nil interface.

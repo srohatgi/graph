@@ -5,84 +5,78 @@ import (
 	"testing"
 )
 
-const (
-	arnProperty = "ARN"
-	streamName  = "hello123"
-)
-
-type factory struct {
-	ctxt context.Context
-}
-
 type kinesis struct {
-	*Resource
 	ctxt context.Context
-	bag  interface{}
+	Arn  string
 }
-
-func (k *kinesis) Get() *Resource { return k.Resource }
-func (k *kinesis) Update(in []Property) ([]Property, error) {
-	return []Property{{arnProperty, streamName}}, nil
-}
-func (k *kinesis) Delete() error { return nil }
 
 type dynamo struct {
-	*Resource
 	ctxt context.Context
 }
-
-func (k *dynamo) Get() *Resource                           { return k.Resource }
-func (k *dynamo) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *dynamo) Delete() error                            { return nil }
 
 type deployment struct {
-	*Resource
-	ctxt context.Context
+	ctxt       context.Context
+	KinesisArn string
 }
 
-func (k *deployment) Get() *Resource                           { return k.Resource }
-func (k *deployment) Update(in []Property) ([]Property, error) { return nil, nil }
-func (k *deployment) Delete() error                            { return nil }
+func TestCheckField(t *testing.T) {
+	ctxt := context.Background()
+	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
 
-func (f *factory) Create(r *Resource) Builder {
-	switch r.Type {
-	case "kinesis":
-		return &kinesis{r, f.ctxt, nil}
-	case "dynamo":
-		return &dynamo{r, f.ctxt}
-	case "deployment":
-		return &deployment{r, f.ctxt}
+	if checkField(kinesisResource, "Arn") != nil {
+		t.Fatal("Arn field exists in kinesisResource")
 	}
-	return nil
+	if checkField(kinesisResource, "Bad") == nil {
+		t.Fatal("Bad field does not exist in kinesisResource")
+	}
+}
+
+func TestCopyValue(t *testing.T) {
+	WithLogger(t.Log)
+	ctxt := context.Background()
+
+	arn := "hello123"
+
+	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	copyValue(deploymentResource, "KinesisArn", kinesisResource, "Arn")
+
+	out, err := deploymentResource.Update(context.Background())
+
+	if err != nil {
+		t.Fatalf("error calling Update! err = %v", err)
+	}
+
+	if out != arn {
+		t.Fatalf("expected arn to match!")
+	}
+
 }
 
 func TestSync(t *testing.T) {
 	mykin := "mykin"
 
-	resources := []*Resource{{
-		Name: mykin,
-		Type: "kinesis",
-	}, {
-		Name: "mydyn",
-		Type: "dynamo",
-	}, {
-		Name:      "mydep1",
-		Type:      "deployment",
-		DependsOn: []string{mykin},
-	}}
+	ctxt := context.Background()
 
-	f := &factory{}
+	arn := "hello123"
+
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
 	WithLogger(t.Log)
 
-	status, err := Sync(resources, false, f)
+	status, err := Sync(ctxt, resources, false)
 
 	if err != nil {
 		t.Fatalf("unable to sync %v", err)
 	}
 
-	if status[mykin][0].Value != streamName {
-		t.Fatal("kinesis stream name not sent out")
+	if status["mydep1"] != arn {
+		t.Fatal("expected mydep1 status to return kinesis arn")
 	}
 
 }

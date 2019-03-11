@@ -1,22 +1,20 @@
 package graph
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestBuildGraph(t *testing.T) {
 
-	kinName := "mykin"
+	ctxt := context.Background()
+	mykin := "mykin"
 
-	resources := []*Resource{{
-		Name: kinName,
-		Type: "kinesis",
-	}, {
-		Name: "mydyn",
-		Type: "dynamo",
-	}, {
-		Name:      "mydep1",
-		Type:      "deployment",
-		DependsOn: []string{kinName},
-	}}
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
 	g := buildGraph(resources)
 

@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -27,15 +28,52 @@ func TestSort(t *testing.T) {
 	if len(sorted) != g.vertices() {
 		t.Fatal("the graph is not a dag!")
 	}
+
+	if after(sorted, 0, 1, 2, 3) {
+		t.Fatalf("the graph is not sorted correctly, sorted: %v", sorted)
+	}
+	if after(sorted, 1, 4) {
+		t.Fatalf("the graph is not sorted correctly, sorted: %v", sorted)
+	}
+	if after(sorted, 2, 4) {
+		t.Fatalf("the graph is not sorted correctly, sorted: %v", sorted)
+	}
+	if after(sorted, 3, 4) {
+		t.Fatalf("the graph is not sorted correctly, sorted: %v", sorted)
+	}
 }
 
-func equals(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
+func TestSort2(t *testing.T) {
+	WithLogger(t.Log)
 
-	for i, elt := range a {
-		if elt != b[i] {
+	g := newGraph(3)
+	g.addEdge(0, 1)
+
+	sorted := sort(g)
+
+	if after(sorted, 0, 1) {
+		t.Fatalf("0 is a parent of 1, sorted = %v", sorted)
+	}
+}
+
+func indexOf(g []int, a int) int {
+	for i := range g {
+		if a == g[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+func after(g []int, a int, others ...int) bool {
+	return !before(g, a, others...)
+}
+
+func before(g []int, a int, others ...int) bool {
+	indexA := indexOf(g, a)
+	for _, b := range others {
+		indexB := indexOf(g, b)
+		if indexA > indexB {
 			return false
 		}
 	}
@@ -61,4 +99,7 @@ func TestDFS(t *testing.T) {
 		t.Fatal("expected dfs order to match vertices")
 	}
 
+	if !reflect.DeepEqual(order, []int{2, 1, 0, 3}) {
+		t.Fatal("dfs did not work")
+	}
 }
