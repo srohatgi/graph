@@ -1,37 +1,3 @@
-// Package graph may be useful for developers tasked with storage, compute and
-// network management for cloud microservices.  The library provides types and
-// functions that enable a modular, extensible programming model.
-//
-// We assume that a declarative model of defining and manipulating a compute or
-// storage resource (example: aws cloudformation, kubernetes, etc.) will be used.
-//
-// Types and Values
-//
-// A Resource is a declarative abstraction of a storage, compute or network
-// service. Resources may have a Dependency order of creation and deletion.
-//
-// In go, Resource is expressed as an interface with a backed by a struct having
-// having public properties. Based on the dependency, these properties may be
-// injected by the library at runtime.
-//
-// The library manages a collection of related resources at a given time. Hence,
-// multiple errors may be produced concurrently. There is a handy ErrorMap struct
-// that allows developers to parse out multiple errors and map them to individual
-// resources.
-//
-// Use the following code snippet:
-//  if em, ok := err.(*ErrorMap); ok {
-//    for resourceIndex, err := range *em {
-//      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
-//    }
-//  }
-//
-// Functions
-//
-// The library manages a list of resources. Each resource may have a unique name.
-//
-// The Sync() function provides a method for managing a collection of resources:
-//  status, err := Sync(resources, false) // refer to signature below
 package graph
 
 import (

@@ -1,3 +1,33 @@
+// Package graph may be useful for developers tasked with storage, compute and
+// network management for cloud microservices.  The library provides types and
+// functions that enable a modular, extensible programming model.
+//
+// Types and Values
+//
+// Resource interface is a declarative abstraction of a storage, compute or network
+// service. Resources may have a Dependency order of creation and deletion.
+// Idiomatic resources may have a single backing structure for fulfilling the
+// interface. The library utilizes this backing structure to locate and inject
+// public properties of a resource during execution.
+//
+// Functions
+//
+// The library manages a collection of related resources at a given time.
+// The Sync() function provides a method for managing a collection of resources:
+//
+//  status, err := Sync(resources, false) // refer to signature below
+//
+// The library tries to execute multiple resources concurrently. There is a handy
+// ErrorMap struct that allows developers attribute errors to corresponding
+// resources.
+//
+// Use the following code snippet:
+//  if em, ok := err.(*ErrorMap); ok {
+//    for resourceIndex, err := range *em {
+//      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
+//    }
+//  }
+//
 package graph
 
 import (
