@@ -87,10 +87,10 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 	return &protoBuilder{name, dependencies, uDef, updFn, delFn}
 }
 
-// Sync method is used to enforce the programming model. Internally, the method
-// maps the Resource slice to a Builder slice (using the Factory instance), and
-// then executes appropriate Builder interface methods. When a subset of resources
-// can be updated or created in parallel, the method attempts to do it.
+// Sync method uses the Resource slice to generate a DAG. The DAG is processed based on the value
+// of toDelete flag. Resources may be processed concurrently. Processed resources may return a status
+// string and or an error. The function collects these and aggregates them in respective maps keyed by
+// resource names.
 func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
 	g := buildGraph(resources)
 
