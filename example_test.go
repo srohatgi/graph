@@ -88,7 +88,13 @@ func Example_usage() {
 
 	status, err := graph.Sync(ctxt, resources, false)
 	if err != nil {
-		fmt.Printf("unable to sync resources, error = %v\n", err)
+		if em, ok := err.(graph.ErrorMapper); ok {
+			for resourceName, err := range em.ErrorMap() {
+				fmt.Printf("resource %s creation had error %v\n", resourceName, err)
+			}
+		} else {
+			fmt.Printf("unable to sync resources, error = %v\n", err)
+		}
 	}
 
 	fmt.Printf("deployment status = %s\n", status["mydep"])
