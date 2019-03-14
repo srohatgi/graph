@@ -226,7 +226,7 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 
 		wg.Wait()
 
-		errs := ErrorMap{}
+		errs := errorMap{}
 		for i, c := range output {
 			e := <-c
 
@@ -244,8 +244,11 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 			buildCache[name] = resources[i]
 		}
 
-		resourcesLeft -= len(execList) - errs.Size()
-		err = errs.Get()
+		resourcesLeft -= len(execList) - len(errs)
+
+		if len(errs) > 0 {
+			err = errs
+		}
 	}
 
 	if resourcesLeft > 0 && err == nil {

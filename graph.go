@@ -18,13 +18,12 @@
 //  status, err := Sync(resources, false) // refer to signature below
 //
 // The library tries to execute multiple resources concurrently. There is a handy
-// ErrorMap struct that allows developers attribute errors to corresponding
-// resources.
+// ErrorMapper interface that allows developers to query resource specific errors.
 //
 // Use the following code snippet:
-//  if em, ok := err.(*ErrorMap); ok {
-//    for resourceIndex, err := range *em {
-//      fmt.Printf("resource %d creation had error %v\n", resourceIndex, err)
+//  if em, ok := err.(ErrorMapper); ok {
+//    for resourceName, err := range em.ErrorMap() {
+//      fmt.Printf("resource %s creation had error %v\n", resourceName, err)
 //    }
 //  }
 //
