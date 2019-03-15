@@ -6,12 +6,14 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/imdario/mergo"
 	"github.com/srohatgi/graph"
 )
 
 const spec = `
 kinesis:
 - name: mykin
+  shardcount: 5
   streamname: myEventStream
 deployment:
 - name: mydep
@@ -22,6 +24,13 @@ deployment:
 dynamo:
 - name: mydyn
   tablename: myDynamoTable
+`
+
+const overrideSpec = `
+kinesis:
+- name: mykin
+  shardcount: 10
+  streamname: myEventStream
 `
 
 const debugGraphLib = false
@@ -58,6 +67,14 @@ func (f *factory) build() []graph.Resource {
 	return resources
 }
 
+func (f *factory) applyOverrides(defaults *factory) {
+	for _, dest := range f.Kinesis {
+		for _, src := range defaults.Kinesis {
+			mergo.Merge(dest, *src, mergo.WithOverride)
+		}
+	}
+}
+
 /*
 This example shows basic resource synchronization. There are three
 different resources that we need to build: an AWS Kinesis stream, an
@@ -71,6 +88,13 @@ func Example_usage() {
 	if err != nil {
 		fmt.Printf("error creating factory: %v\n", err)
 	}
+
+	envFactory, err := new(overrideSpec)
+	if err != nil {
+		fmt.Printf("error creating override factory: %v\n", err)
+	}
+
+	f.applyOverrides(envFactory)
 
 	resources := f.build()
 
@@ -97,21 +121,24 @@ func Example_usage() {
 		}
 	}
 
+	fmt.Printf("kinesis status = %s\n", status["mykin"])
 	fmt.Printf("deployment status = %s\n", status["mydep"])
 	// Output:
-	// deployment status = successfully reading hello123 in myns
+	// kinesis status = successfully created stream myEventStream with 10 shards
+	// deployment status = successfully reading from stream arn hello123 in myns
 }
 
 // AWS Kinesis resource definition
 type Kinesis struct {
 	graph.Depends `yaml:",inline"`
+	ShardCount    int
 	StreamName    string
 	Arn           string
 }
 
 func (kin *Kinesis) Update(ctxt context.Context) (string, error) {
 	kin.Arn = "hello123"
-	return "", nil
+	return fmt.Sprintf("successfully created stream %s with %d shards", kin.StreamName, kin.ShardCount), nil
 }
 func (kin *Kinesis) Delete(ctxt context.Context) error {
 	return nil
@@ -142,7 +169,7 @@ func (dep *Deployment) Update(ctxt context.Context) (string, error) {
 		return "", fmt.Errorf("unable to get crd info")
 	}
 	// use KinesisArn
-	return "successfully reading " + dep.KinesisArn + " in " + crd["namespace"], nil
+	return fmt.Sprintf("successfully reading from stream arn %s in %s", dep.KinesisArn, crd["namespace"]), nil
 }
 func (dep *Deployment) Delete(ctxt context.Context) error {
 	return nil
