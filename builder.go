@@ -92,6 +92,11 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 // string and or an error. The function collects these and aggregates them in respective maps keyed by
 // resource names.
 func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
+	err := check(resources)
+	if err != nil {
+		return nil, err
+	}
+
 	g := buildGraph(resources)
 
 	logger("starting sync")
