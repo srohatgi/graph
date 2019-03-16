@@ -30,7 +30,6 @@ const overrideSpec = `
 kinesis:
 - name: mykin
   shardcount: 10
-  streamname: myEventStream
 `
 
 const debugGraphLib = false
@@ -70,7 +69,9 @@ func (f *factory) build() []graph.Resource {
 func (f *factory) applyOverrides(defaults *factory) {
 	for _, dest := range f.Kinesis {
 		for _, src := range defaults.Kinesis {
-			mergo.Merge(dest, *src, mergo.WithOverride)
+			if dest.ResourceName() == src.ResourceName() {
+				mergo.Merge(dest, *src, mergo.WithOverride)
+			}
 		}
 	}
 }
