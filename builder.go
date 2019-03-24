@@ -91,7 +91,7 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 // of toDelete flag. Resources may be processed concurrently. Processed resources may return a status
 // string and or an error. The function collects these and aggregates them in respective maps keyed by
 // resource names.
-func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
+func (lib *Lib) Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
 	err := check(resources)
 	if err != nil {
 		return nil, err
@@ -99,13 +99,13 @@ func Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string
 
 	g := buildGraph(resources)
 
-	logger("starting sync")
+	lib.logger("starting sync")
 
 	if toDelete {
-		return nil, deleteSync(ctxt, resources, g)
+		return nil, lib.deleteSync(ctxt, resources, g)
 	}
 
-	return createSync(ctxt, resources, g)
+	return lib.createSync(ctxt, resources, g)
 }
 
 // check that resources have correct dependencies
@@ -178,7 +178,7 @@ func copyValue(to Resource, toField string, from Resource, fromField string) {
 	}
 }
 
-func createSync(ctxt context.Context, resources []Resource, g *graph) (map[string]string, error) {
+func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph) (map[string]string, error) {
 	ordered := sort(g)
 
 	var err error
@@ -196,7 +196,7 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 			res := resources[i]
 			// check if we've already executed
 			if _, alreadyExecuted := buildCache[res.ResourceName()]; alreadyExecuted {
-				logger("already executed", i)
+				lib.logger("already executed", i)
 				continue
 			}
 
@@ -218,7 +218,7 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 		var wg sync.WaitGroup
 		output := map[int]chan builderOutput{}
 
-		logger("executing ", execList)
+		lib.logger("executing ", execList)
 		for _, i := range execList {
 			wg.Add(1)
 			output[i] = make(chan builderOutput, 1)
@@ -240,7 +240,7 @@ func createSync(ctxt context.Context, resources []Resource, g *graph) (map[strin
 			}
 
 			if e.result != nil {
-				logger("error executing resource", "resource", resources[i], "error", e)
+				lib.logger("error executing resource", "resource", resources[i], "error", e)
 				errs[resources[i].ResourceName()] = e.result
 				continue
 			}
@@ -279,11 +279,11 @@ func reverse(in []int) {
 	}
 }
 
-func deleteSync(ctxt context.Context, resources []Resource, g *graph) error {
+func (lib *Lib) deleteSync(ctxt context.Context, resources []Resource, g *graph) error {
 	order := sort(g)
 	reverse(order)
 
-	logger("order of deletion", order)
+	lib.logger("order of deletion", order)
 
 	var err error
 

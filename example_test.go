@@ -99,19 +99,19 @@ func Example_usage() {
 
 	resources := f.build()
 
-	if debugGraphLib {
-		myprint := func(in ...interface{}) {
+	myprint := func(in ...interface{}) {
+		if debugGraphLib {
 			fmt.Println(in...)
 		}
-
-		graph.WithLogger(myprint)
 	}
+
+	lib := graph.New(&graph.Opts{CustomLogger: myprint})
 
 	//fmt.Printf("factory: %v\n", f)
 
 	ctxt := context.WithValue(context.Background(), graph.SyncBag, map[string]string{"namespace": "myns"})
 
-	status, err := graph.Sync(ctxt, resources, false)
+	status, err := lib.Sync(ctxt, resources, false)
 	if err != nil {
 		if em, ok := err.(graph.ErrorMapper); ok {
 			for resourceName, err := range em.ErrorMap() {

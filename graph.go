@@ -37,6 +37,28 @@ import (
 	"strconv"
 )
 
+// Opts captures customizable functionality like logging
+type Opts struct {
+	CustomLogger func(args ...interface{})
+}
+
+// New creates an instance object
+func New(opts *Opts) *Lib {
+	lib := &Lib{
+		logger: func(args ...interface{}) {},
+	}
+	if opts != nil && opts.CustomLogger != nil {
+		lib.logger = opts.CustomLogger
+	}
+
+	return lib
+}
+
+// Lib object is required for using the library
+type Lib struct {
+	logger func(args ...interface{})
+}
+
 // graph data type
 type graph struct {
 	v   int
