@@ -17,6 +17,7 @@ const SyncBag bag = "crd"
 type Depends struct {
 	Name         string
 	Dependencies []Dependency
+	Event        string
 }
 
 // Dependency specifies a single dependency
@@ -39,6 +40,11 @@ func (dep *Depends) ResourceDependencies() []Dependency {
 	return dep.Dependencies
 }
 
+// SetEvent convenience function
+func (dep *Depends) SetEvent(event string) {
+	dep.Event = event
+}
+
 // Resource is an abstract declarative definition for compute, storage and network services.
 // Examples: AWS Kinesis, AWS CloudFormation, Kubernetes Deployment etc.
 type Resource interface {
@@ -58,6 +64,8 @@ type Depender interface {
 	ResourceName() string
 	// Dependencies fetches a given Resource's dependency list.
 	ResourceDependencies() []Dependency
+	// SetEvent sets a new event to be processed by a resource
+	SetEvent(event string)
 }
 
 // Builder allows resources to be created/ deleted
@@ -80,6 +88,7 @@ func (p *protoBuilder) ResourceName() string                        { return p.N
 func (p *protoBuilder) Update(ctxt context.Context) (string, error) { return p.UpdFn(p.UDef) }
 func (p *protoBuilder) Delete(ctxt context.Context) error           { return p.DelFn(p.DelFn) }
 func (p *protoBuilder) ResourceDependencies() []Dependency          { return p.Dependencies }
+func (p *protoBuilder) SetEvent(event string)                       {}
 
 // MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
