@@ -55,16 +55,16 @@ func ProduceStream(tenantID int) Stream {
 	return stream
 }
 
-type Sink struct {
+type Dispatcher struct {
 	graph.Depends
 	registrations []Service
 }
 
-func (sink *Sink) Process(stream Stream) {
+func (stream Stream) Process(dispatcher *Dispatcher) {
 	for _, evt := range stream {
 		lib := graph.New(nil)
 
-		resources := []graph.Resource{sink}
+		resources := []graph.Resource{dispatcher}
 
 		for _, r := range resources {
 			r.SetEvent(evt.state.String())
@@ -72,7 +72,7 @@ func (sink *Sink) Process(stream Stream) {
 
 		toDelete := false
 
-		if sink.Event == "Deleted" {
+		if dispatcher.Event == "Deleted" {
 			toDelete = true
 		}
 
@@ -80,9 +80,9 @@ func (sink *Sink) Process(stream Stream) {
 	}
 }
 
-func (sink *Sink) Update(ctxt context.Context) (string, error) {
-	for _, svc := range sink.registrations {
-		err := svc.Do(1, FromString(sink.Depends.Event))
+func (dispatcher *Dispatcher) Update(ctxt context.Context) (string, error) {
+	for _, svc := range dispatcher.registrations {
+		err := svc.Do(1, FromString(dispatcher.Depends.Event))
 		if err != nil {
 			return "", err
 		}
@@ -90,9 +90,9 @@ func (sink *Sink) Update(ctxt context.Context) (string, error) {
 	return "", nil
 }
 
-func (sink *Sink) Delete(ctxt context.Context) error {
-	for _, svc := range sink.registrations {
-		err := svc.Do(1, FromString(sink.Depends.Event))
+func (dispatcher *Dispatcher) Delete(ctxt context.Context) error {
+	for _, svc := range dispatcher.registrations {
+		err := svc.Do(1, FromString(dispatcher.Depends.Event))
 		if err != nil {
 			return err
 		}
@@ -100,8 +100,8 @@ func (sink *Sink) Delete(ctxt context.Context) error {
 	return nil
 }
 
-func (sink *Sink) Register(service Service) {
-	sink.registrations = append(sink.registrations, service)
+func (dispatcher *Dispatcher) Register(service Service) {
+	dispatcher.registrations = append(dispatcher.registrations, service)
 }
 
 type Service interface {
@@ -119,9 +119,9 @@ func (svc *service) Do(tenantID int, state State) error {
 
 func Example_eventProcessing() {
 	stream := ProduceStream(1)
-	sink := &Sink{}
-	sink.Register(&service{name: "actions"})
-	sink.Process(stream)
+	dispatcher := &Dispatcher{}
+	dispatcher.Register(&service{name: "actions"})
+	stream.Process(dispatcher)
 	// Output:
 	// processed Suspended for tenantID 1
 	// processed Deleted for tenantID 1
