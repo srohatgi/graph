@@ -118,9 +118,9 @@ func (svc *service) Do(tenantID int, state State) error {
 }
 
 func Example_eventProcessing() {
-	stream := ProduceStream(1)
 	dispatcher := &Dispatcher{}
 	dispatcher.Register(&service{name: "actions"})
+	stream := ProduceStream(1)
 	stream.Process(dispatcher)
 	// Output:
 	// processed Suspended for tenantID 1
