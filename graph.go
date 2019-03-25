@@ -15,7 +15,7 @@
 // The library manages a collection of related resources at a given time.
 // The Sync() function provides a method for managing a collection of resources:
 //
-//  status, err := Sync(resources, false) // refer to signature below
+//  status, err := lib.Sync(context, resources, false) // refer to signature below
 //
 // The library tries to execute multiple resources concurrently. There is a handy
 // ErrorMapper interface that allows developers to query resource specific errors.
