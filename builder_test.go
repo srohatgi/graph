@@ -62,7 +62,7 @@ func TestSync(t *testing.T) {
 
 	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
 	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}, {FromResource: "mydyn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
 
 	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
