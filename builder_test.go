@@ -32,7 +32,6 @@ func TestCheckField(t *testing.T) {
 }
 
 func TestCopyValue(t *testing.T) {
-	WithLogger(t.Log)
 	ctxt := context.Background()
 
 	arn := "hello123"
@@ -67,9 +66,9 @@ func TestSync(t *testing.T) {
 
 	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
-	WithLogger(t.Log)
+	lib := New(&Opts{CustomLogger: t.Log})
 
-	status, err := Sync(ctxt, resources, false)
+	status, err := lib.Sync(ctxt, resources, false)
 
 	if err != nil {
 		t.Fatalf("unable to sync %v", err)

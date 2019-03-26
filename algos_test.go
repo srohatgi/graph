@@ -6,7 +6,6 @@ import (
 )
 
 func TestSort(t *testing.T) {
-	WithLogger(t.Log)
 	g := newGraph(5)
 	g.addEdge(2, 4)
 	g.addEdge(0, 1)
@@ -44,7 +43,6 @@ func TestSort(t *testing.T) {
 }
 
 func TestSort2(t *testing.T) {
-	WithLogger(t.Log)
 
 	g := newGraph(3)
 	g.addEdge(0, 1)

@@ -42,7 +42,6 @@ func sort(g *graph) []int {
 		sorted = append(sorted, toRemove)
 	}
 
-	logger("sorted", sorted)
 	return sorted
 }
 
