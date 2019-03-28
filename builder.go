@@ -133,6 +133,9 @@ func check(resources []Resource) error {
 			if err := checkField(r, dep.ToField); err != nil {
 				return err
 			}
+			if _, ok := cache[dep.FromResource]; !ok {
+				return fmt.Errorf("Dependent resource %s doesn't exist. Validation failure.", dep.FromResource)
+			}
 			if err := checkField(cache[dep.FromResource], dep.FromField); err != nil {
 				return err
 			}
