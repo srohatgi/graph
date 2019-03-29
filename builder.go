@@ -94,7 +94,7 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 func (lib *Lib) Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
 	err := check(resources)
 	if err != nil {
-		return nil, err
+		return nil, ValidationError{err.Error()}
 	}
 
 	g := buildGraph(resources)
@@ -134,7 +134,7 @@ func check(resources []Resource) error {
 				return err
 			}
 			if _, ok := cache[dep.FromResource]; !ok {
-				return fmt.Errorf("Dependent resource %s doesn't exist. Validation failure.", dep.FromResource)
+				return fmt.Errorf("Dependent resource %s doesn't exist", dep.FromResource)
 			}
 			if err := checkField(cache[dep.FromResource], dep.FromField); err != nil {
 				return err
