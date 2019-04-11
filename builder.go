@@ -94,7 +94,7 @@ func MakeResource(name string, dependencies []Dependency, uDef interface{}, updF
 func (lib *Lib) Sync(ctxt context.Context, resources []Resource, toDelete bool) (map[string]string, error) {
 	err := check(resources)
 	if err != nil {
-		return nil, ValidationError{err.Error()}
+		return nil, err
 	}
 
 	g := buildGraph(resources)
