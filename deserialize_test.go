@@ -10,9 +10,9 @@ func TestBuildGraph(t *testing.T) {
 	ctxt := context.Background()
 	mykin := "mykin"
 
-	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
 
 	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 

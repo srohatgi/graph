@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type bag string
@@ -66,6 +67,10 @@ type Builder interface {
 	Delete(ctxt context.Context) error
 	// Update or if not existing, create the Resource.
 	Update(ctxt context.Context) (string, error)
+	// Checks if the resource is ready before calling the next node.
+	IsReady(ctxt context.Context) bool
+	// Get the Resource.
+	Get(ctx context.Context) (interface{}, error)
 }
 
 type protoBuilder struct {
@@ -74,17 +79,21 @@ type protoBuilder struct {
 	UDef         interface{}
 	UpdFn        func(interface{}) (string, error)
 	DelFn        func(interface{}) error
+	RdyFn        func(interface{}) bool
+	GetFn        func(interface{}) (interface{}, error)
 }
 
-func (p *protoBuilder) ResourceName() string                        { return p.Name }
-func (p *protoBuilder) Update(ctxt context.Context) (string, error) { return p.UpdFn(p.UDef) }
-func (p *protoBuilder) Delete(ctxt context.Context) error           { return p.DelFn(p.DelFn) }
-func (p *protoBuilder) ResourceDependencies() []Dependency          { return p.Dependencies }
+func (p *protoBuilder) Get(ctxt context.Context) (interface{}, error) { return p.GetFn(p.UDef) }
+func (p *protoBuilder) IsReady(ctxt context.Context) bool             { return p.RdyFn(p.UDef) }
+func (p *protoBuilder) ResourceName() string                          { return p.Name }
+func (p *protoBuilder) Update(ctxt context.Context) (string, error)   { return p.UpdFn(p.UDef) }
+func (p *protoBuilder) Delete(ctxt context.Context) error             { return p.DelFn(p.DelFn) }
+func (p *protoBuilder) ResourceDependencies() []Dependency            { return p.Dependencies }
 
 // MakeResource is a convenient utility to create Resource's in a cheap way.
 // NOTE: uDef is a custom generic struct that is injected into updFn & delFn
-func MakeResource(name string, dependencies []Dependency, uDef interface{}, updFn func(interface{}) (string, error), delFn func(interface{}) error) Resource {
-	return &protoBuilder{name, dependencies, uDef, updFn, delFn}
+func MakeResource(name string, dependencies []Dependency, uDef interface{}, updFn func(interface{}) (string, error), delFn func(interface{}) error, RdyFn func(interface{}) bool, GetFn func(interface{}) (interface{}, error)) Resource {
+	return &protoBuilder{name, dependencies, uDef, updFn, delFn, RdyFn, GetFn}
 }
 
 // Sync method uses the Resource slice to generate a DAG. The DAG is processed based on the value
@@ -272,6 +281,16 @@ func execute(ctxt context.Context, r Resource, cache map[string]Resource) builde
 	}
 
 	out, err := r.Update(ctxt)
+	if err != nil {
+		return builderOutput{out, err}
+	}
+
+	err = waitUntilReady(ctxt, r)
+	if err != nil {
+		return builderOutput{"resource not ready!", err}
+	}
+
+	_, err = r.Get(ctxt)
 	return builderOutput{out, err}
 }
 
@@ -298,4 +317,23 @@ func (lib *Lib) deleteSync(ctxt context.Context, resources []Resource, g *graph)
 	}
 
 	return err
+}
+
+func waitUntilReady(ctx context.Context, r Resource) error {
+	w := Waiter{
+		MaxAttempts: 50,
+		Delay:       30 * time.Second,
+		Acceptors: []WaiterAcceptor{
+			{
+				Matcher: func(i interface{}) bool {
+					return i.(bool) == true
+				},
+			},
+		},
+		ExecuteAction: func() interface{} {
+			return r.IsReady(ctx)
+		},
+	}
+
+	return w.WaitWithContext(ctx)
 }

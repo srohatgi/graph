@@ -21,7 +21,7 @@ type deployment struct {
 
 func TestCheckField(t *testing.T) {
 	ctxt := context.Background()
-	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
 
 	if checkField(kinesisResource, "Arn") != nil {
 		t.Fatal("Arn field exists in kinesisResource")
@@ -36,8 +36,8 @@ func TestCopyValue(t *testing.T) {
 
 	arn := "hello123"
 
-	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource("mykin", nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
 
 	copyValue(deploymentResource, "KinesisArn", kinesisResource, "Arn")
 
@@ -60,9 +60,9 @@ func TestSync(t *testing.T) {
 
 	arn := "hello123"
 
-	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	dynamoResource := MakeResource("mydyn", nil, &dynamo{ctxt: ctxt}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
 
 	resources := []Resource{kinesisResource, dynamoResource, deploymentResource}
 
@@ -87,8 +87,8 @@ func TestInvalidDependency(t *testing.T) {
 
 	arn := "hello123"
 
-	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin2", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { return "", nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin2", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil }, func(x interface{}) bool { return true }, func(x interface{}) (interface{}, error) { return nil, nil })
 
 	resources := []Resource{kinesisResource, deploymentResource}
 

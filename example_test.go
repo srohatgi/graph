@@ -145,6 +145,14 @@ func (kin *Kinesis) Delete(ctxt context.Context) error {
 	return nil
 }
 
+func (kin *Kinesis) IsReady(ctxt context.Context) bool {
+	return true
+}
+
+func (kin *Kinesis) Get(ctxt context.Context) (interface{}, error) {
+	return nil, nil
+}
+
 // AWS Dynamo DB resource definition
 type Dynamo struct {
 	graph.Depends `yaml:",inline"`
@@ -156,6 +164,14 @@ func (dyn *Dynamo) Update(ctxt context.Context) (string, error) {
 }
 func (dyn *Dynamo) Delete(ctxt context.Context) error {
 	return nil
+}
+
+func (dyn *Dynamo) IsReady(ctxt context.Context) bool {
+	return true
+}
+
+func (dyn *Dynamo) Get(ctxt context.Context) (interface{}, error) {
+	return nil, nil
 }
 
 // Kubernetes Deployment resource definition
@@ -174,4 +190,12 @@ func (dep *Deployment) Update(ctxt context.Context) (string, error) {
 }
 func (dep *Deployment) Delete(ctxt context.Context) error {
 	return nil
+}
+
+func (dep *Deployment) IsReady(ctxt context.Context) bool {
+	return true
+}
+
+func (dep *Deployment) Get(ctxt context.Context) (interface{}, error) {
+	return nil, nil
 }
