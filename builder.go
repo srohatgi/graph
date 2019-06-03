@@ -15,18 +15,18 @@ const SyncBag bag = "crd"
 
 // Depends is a convenience structure used for capturing resource dependencies.
 type Depends struct {
-	Name         string
-	Dependencies []Dependency
+	Name         string       `yaml:"Name,omitempty" json:"Name,omitempty"`
+	Dependencies []Dependency `yaml:"Dependencies,omitempty" json:"Dependencies,omitempty"`
 }
 
 // Dependency specifies a single dependency
 type Dependency struct {
 	// FromResource is another resource specified in the same slice.
-	FromResource string
+	FromResource string `yaml:"FromResource,omitempty" json:"FromResource,omitempty"`
 	// FromField is a public field from the struct implementing the Resource.
-	FromField string
+	FromField string `yaml:"FromField,omitempty" json:"FromField,omitempty"`
 	// ToField is a public field in the current Resource's implementing struct.
-	ToField string
+	ToField string `yaml:"ToField,omitempty" json:"ToField,omitempty"`
 }
 
 // ResourceName convenience function
