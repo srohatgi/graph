@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 type kinesis struct {
@@ -98,5 +99,55 @@ func TestInvalidDependency(t *testing.T) {
 
 	if err == nil {
 		t.Fatalf("expected sync to fail with invalid dependency")
+	}
+}
+
+func TestRetriesFail(t *testing.T) {
+
+	mykin := "mykin"
+
+	ctxt := context.Background()
+
+	arn := "hello123"
+
+	pollingTimeInSeconds := 5
+
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { time.Sleep(time.Duration(pollingTimeInSeconds) * time.Second); return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, deploymentResource}
+
+	retries := int(1)
+
+	lib := New(&Opts{CustomLogger: t.Log, MaxRetries: &retries,})
+
+	_, err := lib.Sync(ctxt, resources, false)
+
+	if err == nil {
+		t.Fatalf("expected to exhaust computing resources")
+	}
+}
+
+func TestRetries(t *testing.T) {
+
+	mykin := "mykin"
+
+	ctxt := context.Background()
+
+	arn := "hello123"
+
+	pollingTimeInSeconds := 5
+
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { time.Sleep(time.Duration(pollingTimeInSeconds) * time.Second); return "", nil }, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, deploymentResource}
+
+	lib := New(&Opts{CustomLogger: t.Log,}) //will use default retries which is 20, more than enough
+
+	_, err := lib.Sync(ctxt, resources, false)
+
+	if err != nil {
+		t.Fatalf("unable to sync %v", err)
 	}
 }
