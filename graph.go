@@ -40,22 +40,19 @@ import (
 // Opts captures customizable functionality like logging
 type Opts struct {
 	CustomLogger func(args ...interface{})
-	MaxRetries *int
+	MaxRetries int
 }
 
 // New creates an instance object
 func New(opts *Opts) *Lib {
 	lib := &Lib{
 		logger: func(args ...interface{}) {},
-		maxRetryAttempts: 20,
+		maxRetryAttempts: 0,
 	}
 	if opts != nil && opts.CustomLogger != nil {
 		lib.logger = opts.CustomLogger
 	}
-	if opts.MaxRetries != nil {
-		lib.maxRetryAttempts = *opts.MaxRetries
-	}
-
+	lib.maxRetryAttempts = opts.MaxRetries
 	return lib
 }
 

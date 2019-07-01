@@ -186,8 +186,16 @@ func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph)
 
 	var err error
 
+	var maxAttempts int
+
 	resourcesLeft := len(ordered)
-	maxAttempts := lib.maxRetryAttempts
+
+	if lib.maxRetryAttempts == 0{
+		maxAttempts = len(ordered)
+	} else {
+		maxAttempts = lib.maxRetryAttempts
+	}
+
 
 	buildCache := map[string]Resource{}
 	status := map[string]string{}

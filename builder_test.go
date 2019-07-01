@@ -2,8 +2,14 @@ package graph
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
-	"time"
+)
+
+
+const(
+	numRetries = 3
 )
 
 type kinesis struct {
@@ -102,30 +108,24 @@ func TestInvalidDependency(t *testing.T) {
 	}
 }
 
-func TestRetriesFail(t *testing.T) {
-
-	mykin := "mykin"
-
-	ctxt := context.Background()
-
-	arn := "hello123"
-
-	pollingTimeInSeconds := 5
-
-	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { time.Sleep(time.Duration(pollingTimeInSeconds) * time.Second); return "", nil }, func(x interface{}) error { return nil })
-	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
-
-	resources := []Resource{kinesisResource, deploymentResource}
-
-	retries := int(1)
-
-	lib := New(&Opts{CustomLogger: t.Log, MaxRetries: &retries,})
-
-	_, err := lib.Sync(ctxt, resources, false)
-
-	if err == nil {
-		t.Fatalf("expected to exhaust computing resources")
+func parent () func() bool {
+	i := 0
+	return func() bool {
+		i++
+		return i >= numRetries
 	}
+}
+
+func testUpdate (x interface{}) (string,error){
+	child := parent()
+	for{
+		res := child()
+		if res == true{
+			return "", nil
+		}
+	}
+	err := errors.New("Resource not ready yet")
+	return "", err
 }
 
 func TestRetries(t *testing.T) {
@@ -136,18 +136,38 @@ func TestRetries(t *testing.T) {
 
 	arn := "hello123"
 
-	pollingTimeInSeconds := 5
-
-	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, func(x interface{}) (string, error) { time.Sleep(time.Duration(pollingTimeInSeconds) * time.Second); return "", nil }, func(x interface{}) error { return nil })
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, testUpdate, func(x interface{}) error { return nil })
 	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
 
 	resources := []Resource{kinesisResource, deploymentResource}
 
-	lib := New(&Opts{CustomLogger: t.Log,}) //will use default retries which is 20, more than enough
+	lib := New(&Opts{CustomLogger: t.Log, MaxRetries: 2,})
 
 	_, err := lib.Sync(ctxt, resources, false)
 
 	if err != nil {
 		t.Fatalf("unable to sync %v", err)
+	}
+}
+
+func TestRetriesFail(t *testing.T) {
+
+	mykin := "mykin"
+
+	ctxt := context.Background()
+
+	arn := "hello123"
+
+	kinesisResource := MakeResource(mykin, nil, &kinesis{ctxt, arn}, testUpdate, func(x interface{}) error { return nil })
+	deploymentResource := MakeResource("mydep1", []Dependency{{"mykin", "Arn", "KinesisArn"}}, &deployment{ctxt: ctxt}, func(x interface{}) (string, error) { d := x.(*deployment); return d.KinesisArn, nil }, func(x interface{}) error { return nil })
+
+	resources := []Resource{kinesisResource, deploymentResource}
+
+	lib := New(&Opts{CustomLogger: t.Log, MaxRetries: 1,})
+
+	_, err := lib.Sync(ctxt, resources, false)
+
+	if err == nil || !strings.EqualFold(err.Error(),"max attempts at computing resources exhausted, giving up") {
+		t.Fatalf("Expected computing resource exhaustion error")
 	}
 }
