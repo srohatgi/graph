@@ -13,23 +13,23 @@ import (
 
 const spec = `
 kinesis:
-- Name: mykin
+- name: mykin
   shardcount: 5
   streamname: myEventStream
 deployment:
-- Name: mydep
-  Dependencies:
-  - FromResource: mykin
-    FromField: Arn
-    ToField: KinesisArn
+- name: mydep
+  dependencies:
+  - fromresource: mykin
+    fromfield: Arn
+    tofield: KinesisArn
 dynamo:
-- Name: mydyn
+- name: mydyn
   tablename: myDynamoTable
 `
 
 const overrideSpec = `
 kinesis:
-- Name: mykin
+- name: mykin
   shardcount: 10
 `
 
