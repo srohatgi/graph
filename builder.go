@@ -293,6 +293,7 @@ func (lib *Lib) deleteSync(ctxt context.Context, resources []Resource, g *graph)
 	for _, i := range order {
 		err = resources[i].Delete(ctxt)
 		if err != nil {
+			err = errorMap{resources[i].ResourceName(): err}
 			break
 		}
 	}
