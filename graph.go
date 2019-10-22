@@ -35,11 +35,18 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
+
+type Observer interface {
+	ReportDuration(name, operation string, duration time.Duration)
+	ReportStatus(name, operation string, success bool)
+}
 
 // Opts captures customizable functionality like logging
 type Opts struct {
 	CustomLogger func(args ...interface{})
+	Observer Observer
 }
 
 // New creates an instance object
@@ -51,12 +58,17 @@ func New(opts *Opts) *Lib {
 		lib.logger = opts.CustomLogger
 	}
 
+	if opts != nil && opts.Observer != nil {
+		lib.observer = opts.Observer
+	}
+
 	return lib
 }
 
 // Lib object is required for using the library
 type Lib struct {
 	logger func(args ...interface{})
+	observer Observer
 }
 
 // graph data type

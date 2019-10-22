@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type bag string
@@ -228,7 +229,7 @@ func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph)
 
 			go func(b Resource, c chan builderOutput) {
 				defer wg.Done()
-				c <- execute(ctxt, b, buildCache)
+				c <- lib.execute(ctxt, b, buildCache)
 			}(resources[i], output[i])
 		}
 
@@ -266,12 +267,19 @@ func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph)
 	return status, err
 }
 
-func execute(ctxt context.Context, r Resource, cache map[string]Resource) builderOutput {
+func (lib *Lib) execute(ctxt context.Context, r Resource, cache map[string]Resource) builderOutput {
 	for _, dep := range r.ResourceDependencies() {
 		copyValue(r, dep.ToField, cache[dep.FromResource], dep.FromField)
 	}
 
+	startTime := time.Now()
 	out, err := r.Update(ctxt)
+
+	if lib.observer != nil {
+		lib.observer.ReportDuration(r.ResourceName(), "update", time.Since(startTime))
+		lib.observer.ReportStatus(r.ResourceName(), "update", err == nil)
+	}
+
 	return builderOutput{out, err}
 }
 
@@ -291,7 +299,14 @@ func (lib *Lib) deleteSync(ctxt context.Context, resources []Resource, g *graph)
 	var err error
 
 	for _, i := range order {
+		startTime := time.Now()
 		err = resources[i].Delete(ctxt)
+
+		if lib.observer != nil {
+			lib.observer.ReportDuration(resources[i].ResourceName(), "delete", time.Since(startTime))
+			lib.observer.ReportStatus(resources[i].ResourceName(), "delete", err == nil)
+		}
+
 		if err != nil {
 			err = errorMap{resources[i].ResourceName(): err}
 			break

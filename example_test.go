@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -78,6 +79,21 @@ func (f *factory) applyOverrides(defaults *factory) {
 	}
 }
 
+type observer struct {
+}
+
+func (o *observer) ReportDuration(name, operation string, duration time.Duration) {
+	// report metrics here
+}
+
+func (o *observer) ReportStatus(name, operation string, success bool) {
+	// report metrics here
+}
+
+func getObserver() graph.Observer  {
+	return &observer{}
+}
+
 /*
 This example shows basic resource synchronization. There are three
 different resources that we need to build: an AWS Kinesis stream, an
@@ -109,7 +125,7 @@ func Example_usage() {
 		}
 	}
 
-	lib := graph.New(&graph.Opts{CustomLogger: myprint})
+	lib := graph.New(&graph.Opts{CustomLogger: myprint,Observer: getObserver()})
 
 	// fmt.Printf("factory: %v\n", f)
 
