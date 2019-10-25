@@ -40,14 +40,14 @@ import (
 // Opts captures customizable functionality like logging
 type Opts struct {
 	CustomLogger func(args ...interface{})
-	Decorator    func(b Builder) Builder
+	Decorator    func(r Resource) Resource
 }
 
 // New creates an instance object
 func New(opts *Opts) *Lib {
 	lib := &Lib{
 		logger:    func(args ...interface{}) {},
-		decorator: func(b Builder) Builder { return b },
+		decorator: func(r Resource) Resource { return r },
 	}
 	if opts != nil && opts.CustomLogger != nil {
 		lib.logger = opts.CustomLogger
@@ -63,7 +63,7 @@ func New(opts *Opts) *Lib {
 // Lib object is required for using the library
 type Lib struct {
 	logger    func(args ...interface{})
-	decorator func(r Builder) Builder
+	decorator func(r Resource) Resource
 }
 
 // graph data type
