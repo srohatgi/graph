@@ -228,7 +228,7 @@ func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph)
 
 			go func(b Resource, c chan builderOutput) {
 				defer wg.Done()
-				c <- execute(ctxt, b, buildCache)
+				c <- lib.execute(ctxt, b, buildCache)
 			}(resources[i], output[i])
 		}
 
@@ -266,12 +266,12 @@ func (lib *Lib) createSync(ctxt context.Context, resources []Resource, g *graph)
 	return status, err
 }
 
-func execute(ctxt context.Context, r Resource, cache map[string]Resource) builderOutput {
+func (lib *Lib) execute(ctxt context.Context, r Resource, cache map[string]Resource) builderOutput {
 	for _, dep := range r.ResourceDependencies() {
 		copyValue(r, dep.ToField, cache[dep.FromResource], dep.FromField)
 	}
 
-	out, err := r.Update(ctxt)
+	out, err := lib.decorator(r).Update(ctxt)
 	return builderOutput{out, err}
 }
 
@@ -291,7 +291,7 @@ func (lib *Lib) deleteSync(ctxt context.Context, resources []Resource, g *graph)
 	var err error
 
 	for _, i := range order {
-		err = resources[i].Delete(ctxt)
+		err = lib.decorator(resources[i]).Delete(ctxt)
 		if err != nil {
 			err = errorMap{resources[i].ResourceName(): err}
 			break
